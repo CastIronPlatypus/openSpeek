@@ -659,6 +659,10 @@ input[type='range'] {
 .dialog--sheet {
   width: min(500px, calc(100vw - 32px));
 }
+.dialog--sheet .dialog-foot {
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
 @media (max-width: 599px) {
   /* A bottom sheet, lifted above the on-screen keyboard (see useKeyboardInset in Dialog.tsx). */
   .dialog--sheet {
@@ -681,7 +685,6 @@ input[type='range'] {
   }
   .dialog--sheet .dialog-foot {
     padding: 12px 20px calc(12px + var(--safe-bottom));
-    border-top: 1px solid var(--border);
   }
   .dialog--large {
     width: 100vw;

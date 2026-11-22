@@ -22,6 +22,7 @@ The server is optional. Without it the app is a static site using in-browser Pho
 - Library stored in the browser (IndexedDB) with resume position.
 - Export a document as a WAV file.
 - Light and dark themes.
+- Send feedback from the app (library header, Settings, or the reader's “…” menu); it is saved on your openSpeek server, never with your documents.
 
 ## Run
 
@@ -29,7 +30,7 @@ The server is optional. Without it the app is a static site using in-browser Pho
 npm install
 npm run dev                 # client only, http://localhost:5173
 
-# with the server (Edge TTS, server-side Phonon, fetching pages for pasted links)
+# with the server (Edge TTS, server-side Phonon, fetching pages for pasted links, feedback via /api/feedback)
 (cd server && npm install)
 npm run server              # API on http://localhost:8787 (the dev client proxies /api to it)
 
