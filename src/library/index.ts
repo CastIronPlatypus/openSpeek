@@ -1,6 +1,7 @@
 import { segment } from '../ingest/segment';
 import type { DocMeta, DocumentDraft, Settings, StoredDocument } from '../types';
 import { openIdbStore } from './idbStore';
+import { requestPersistentStorage } from './persist';
 import { mergeSettings, settingsFromStored } from './settings';
 import { createMemoryStore, type Store } from './store';
 
@@ -42,6 +43,7 @@ export async function addDocument(draft: DocumentDraft): Promise<StoredDocument>
     progress: 0,
   };
   await (await store()).putDocument(meta, { id: meta.id, blocks: draft.blocks });
+  requestPersistentStorage();
   return { ...meta, blocks: draft.blocks };
 }
 
