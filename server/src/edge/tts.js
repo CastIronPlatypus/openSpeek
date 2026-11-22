@@ -32,6 +32,18 @@ const VOICE_NAME_RE = /^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*-[A-Za-z0-9]+Neural$/;
 class TransientError extends Error {}
 
 /**
+ * Silent MP3 in the service's format (MPEG-2 Layer III, 24 kHz, 48 kbit/s, mono): `frames`
+ * frames of 576 samples (24 ms) each. Used when the text has nothing speakable ("…", "—"),
+ * for which the service ends the turn without audio.
+ * @param {number} [frames]
+ */
+export function silentMp3(frames = 10) {
+  const frame = Buffer.alloc(144); // 72 * 48000 / 24000 bytes, no padding
+  frame.set([0xff, 0xf3, 0x64, 0xc4]); // sync, MPEG-2, Layer III, no CRC | 48k, 24 kHz | mono
+  return Buffer.concat(Array(frames).fill(frame));
+}
+
+/**
  * JavaScript-style date string the service expects in X-Timestamp.
  * @param {Date} [d]
  */
@@ -245,11 +257,14 @@ export class EdgeTts {
   // ───────────── synthesis ─────────────
 
   /**
+   * Check a voice name. Loads the voice list first if needed (the service just drops the
+   * connection for unknown voices); if the list cannot be loaded, only the format is checked.
    * @param {string | null | undefined} voice
    */
-  resolveVoice(voice) {
+  async resolveVoice(voice) {
     const v = voice || this.defaultVoice;
     if (!VOICE_NAME_RE.test(v) || v.length > 100) throw new HttpError(400, `Unknown Edge voice: ${String(voice).slice(0, 100)}`);
+    if (!this.voiceCache) await this.listVoices().catch(() => undefined);
     const cached = this.voiceCache?.voices;
     if (cached && cached.length && !cached.some((x) => x.name === v)) {
       throw new HttpError(400, `Unknown Edge voice: ${v}`);
@@ -264,7 +279,7 @@ export class EdgeTts {
    * @returns {Promise<{ audio: Buffer, words: import('./words.js').WordTiming[] }>}
    */
   async synthesize(text, voice) {
-    const v = this.resolveVoice(voice);
+    const v = await this.resolveVoice(voice);
     return this.limiter.run(async () => {
       /** @type {Buffer[]} */
       const audio = [];
@@ -287,7 +302,7 @@ export class EdgeTts {
         compensation = Math.floor((totalBytes * 8 * TICKS_PER_SECOND) / MP3_BITRATE_BPS);
       }
       const buf = Buffer.concat(audio);
-      if (!buf.length) throw new HttpError(502, 'Edge TTS returned no audio');
+      if (!buf.length) return { audio: silentMp3(), words: [] }; // nothing speakable
       return { audio: buf, words: mapWordBoundaries(text, boundaries) };
     });
   }
@@ -338,8 +353,7 @@ export class EdgeTts {
           /* ignore */
         }
         if (err) reject(err);
-        else if (!audio.length) reject(new TransientError('Edge TTS returned no audio'));
-        else resolve({ audio, boundaries });
+        else resolve({ audio, boundaries }); // a turn without audio means nothing was speakable
       };
 
       ws.on('unexpected-response', (_req, res) => {

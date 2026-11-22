@@ -8,7 +8,11 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "server": "node server/src/index.js",
+    "start": "npm run build && npm run server",
+    "test:server": "npm --prefix server test",
+    "test:all": "vitest run && npm --prefix server test"
   },
   "dependencies": {
     "@mozilla/readability": "^0.6.0",
