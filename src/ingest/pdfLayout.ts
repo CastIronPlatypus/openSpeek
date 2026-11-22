@@ -1,5 +1,5 @@
 import type { Block } from '../types';
-import { cleanText, makeBlock } from './text';
+import { cleanText, headingKey, labelsMatch, makeBlock } from './text';
 
 /** A text run positioned in PDF user space (y grows upwards, baseline). */
 export interface PdfItem {
@@ -12,6 +12,26 @@ export interface PdfItem {
 
 export interface PdfPage {
   items: PdfItem[];
+}
+
+/** A PDF outline (bookmark) entry, resolved to where it points. */
+export interface PdfBookmark {
+  title: string;
+  /** Nesting depth, 1 for top-level entries. */
+  depth: number;
+  /** 0-based page index. */
+  page: number;
+  /** Top of the destination in PDF user space (y grows upwards), or `null` for the page top. */
+  top: number | null;
+}
+
+/** A block with where its first line sits. */
+interface PlacedBlock {
+  block: Block;
+  page: number;
+  /** Approximate top of the first line, PDF user space. */
+  top: number;
+  fontSize: number;
 }
 
 interface Line {
@@ -96,8 +116,16 @@ function joinLines(left: string, right: string): string {
   return `${left} ${right}`;
 }
 
-/** Rebuild headings and paragraphs from positioned text runs. */
-export function layoutPages(pages: PdfPage[]): Block[] {
+/**
+ * Rebuild headings and paragraphs from positioned text runs. Headings come from font sizes and,
+ * when the PDF has an outline, from its bookmarks (see `mergeBookmarks`).
+ */
+export function layoutPages(pages: PdfPage[], bookmarks: PdfBookmark[] = []): Block[] {
+  const placed = placeBlocks(pages);
+  return bookmarks.length ? mergeBookmarks(placed, bookmarks) : placed.map((p) => p.block);
+}
+
+function placeBlocks(pages: PdfPage[]): PlacedBlock[] {
   const lines = removeFurniture(pages.map(pageLines)).flat();
   if (!lines.length) return [];
 
@@ -130,13 +158,14 @@ export function layoutPages(pages: PdfPage[]): Block[] {
     return TERMINAL.test(prev.text) && line.x > prev.x + line.fontSize;
   };
 
-  const blocks: Block[] = [];
+  const blocks: PlacedBlock[] = [];
   let group: Line[] = [];
   const flush = () => {
     if (!group.length) return;
     const text = group.map((l) => l.text).reduce(joinLines);
-    const block = isHeading(group[0]) ? makeBlock('heading', text, levelOf(group[0])) : makeBlock('paragraph', text);
-    if (block) blocks.push(block);
+    const first = group[0];
+    const block = isHeading(first) ? makeBlock('heading', text, levelOf(first)) : makeBlock('paragraph', text);
+    if (block) blocks.push({ block, page: first.page, top: first.y + first.fontSize, fontSize: first.fontSize });
     group = [];
   };
   for (const line of lines) {
@@ -146,3 +175,116 @@ export function layoutPages(pages: PdfPage[]): Block[] {
   flush();
   return blocks;
 }
+
+/** A bookmark's destination may sit this far (in font sizes) below the heading's top. */
+const TOP_SLACK = 2;
+/** How many blocks from a bookmark's position are searched for its title. */
+const SEARCH_BLOCKS = 4;
+/** Longer blocks are body text, never a bookmarked heading on their own. */
+const MAX_HEADING_LENGTH = 200;
+
+/**
+ * Where a paragraph starting with `title` (case and punctuation aside) should be split so the
+ * title becomes its own heading, or -1. The split must fall on a word boundary.
+ */
+function titlePrefixEnd(text: string, title: string): number {
+  const key = headingKey(title);
+  if (key.length < 3) return -1;
+  let matched = 0;
+  for (let i = 0; i < text.length; i++) {
+    const k = headingKey(text[i]);
+    if (!k) continue;
+    if (key.slice(matched, matched + k.length) !== k) return -1;
+    matched += k.length;
+    if (matched === key.length) return /[\p{L}\p{N}]/u.test(text[i + 1] ?? '') ? -1 : i + 1;
+  }
+  return -1;
+}
+
+/**
+ * Makes sure each bookmark has a heading where it points: the block there whose text matches
+ * the bookmark title becomes a heading at the bookmark's depth (bookmarks take precedence over
+ * font-size levels), a paragraph that starts with the title is split, and when nothing matches a
+ * heading with the title is inserted at the destination. Never adds a second heading for one spot.
+ */
+function mergeBookmarks(placed: PlacedBlock[], bookmarks: PdfBookmark[]): Block[] {
+  const blocks = placed.map((p) => p.block);
+  const before = new Map<number, Block[]>();
+  const split = new Map<number, Block>();
+  const claimed = new Set<number>();
+  const insertedKeys = new Map<number, Set<string>>();
+
+  for (const bm of bookmarks) {
+    const title = cleanText(bm.title);
+    const key = headingKey(title);
+    if (!key) continue;
+    const level = Math.min(6, Math.max(1, bm.depth));
+
+    // The first block at or below the destination, on its page or after it.
+    let at = placed.findIndex(
+      (p) => p.page > bm.page || (p.page === bm.page && (bm.top === null || p.top <= bm.top + TOP_SLACK * p.fontSize)),
+    );
+    if (at < 0) at = placed.length;
+
+    let match = -1;
+    let prefixEnd = -1;
+    let duplicate = false;
+    for (let i = at; i < Math.min(placed.length, at + SEARCH_BLOCKS); i++) {
+      const { page } = placed[i];
+      const block = blocks[i];
+      if (page > bm.page + 1) break;
+      if (claimed.has(i)) {
+        // Another bookmark already made this heading: a repeated entry, not a new one.
+        if (block.kind === 'heading' && labelsMatch(block.text, title)) {
+          duplicate = true;
+          break;
+        }
+        continue;
+      }
+      if (block.text.length <= MAX_HEADING_LENGTH && labelsMatch(block.text, title)) {
+        match = i;
+        break;
+      }
+      if (block.kind === 'paragraph') {
+        const end = titlePrefixEnd(block.text, title);
+        if (end > 0) {
+          match = i;
+          prefixEnd = end;
+          break;
+        }
+      }
+    }
+
+    if (duplicate) continue;
+    if (match >= 0) {
+      claimed.add(match);
+      const block = blocks[match];
+      if (prefixEnd > 0) {
+        const rest = block.text.slice(prefixEnd).replace(/^[\s.:;,—–-]+/, '');
+        blocks[match] = { kind: 'heading', level, text: block.text.slice(0, prefixEnd).trim() };
+        if (rest) split.set(match, { kind: 'paragraph', text: rest });
+      } else {
+        blocks[match] = { kind: 'heading', level, text: block.text };
+      }
+      continue;
+    }
+    // Nothing matched: insert, unless this spot already got a heading with this title.
+    const keys = insertedKeys.get(at) ?? new Set<string>();
+    if (keys.has(key)) continue;
+    keys.add(key);
+    insertedKeys.set(at, keys);
+    const list = before.get(at) ?? [];
+    list.push({ kind: 'heading', level, text: title });
+    before.set(at, list);
+  }
+
+  const out: Block[] = [];
+  blocks.forEach((block, i) => {
+    out.push(...(before.get(i) ?? []), block);
+    const rest = split.get(i);
+    if (rest) out.push(rest);
+  });
+  out.push(...(before.get(blocks.length) ?? []));
+  return out;
+}
+

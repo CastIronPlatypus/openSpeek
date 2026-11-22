@@ -161,6 +161,27 @@ export const LocateIcon = (p: IconProps) => (
     <path d="M12 5v14M6 13l6 6 6-6" />
   </Svg>
 );
+export const ContentsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 6.5h.01M4 12h.01M4 17.5h.01M8 6.5h12M11 12h9M11 17.5h9" />
+  </Svg>
+);
+/** Up to the previous section (chevron with a bar). */
+export const PrevSectionIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 6h12M7 15.5l5-5 5 5" />
+  </Svg>
+);
+export const NextSectionIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6 18h12M7 8.5l5 5 5-5" />
+  </Svg>
+);
+export const ChevronUpIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 14.5l5-5 5 5" />
+  </Svg>
+);
 
 /** The app mark: an open page with sound waves rising from it. */
 export const LogoMark = ({ size = 28 }: IconProps) => (

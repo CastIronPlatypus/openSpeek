@@ -1,5 +1,5 @@
 import type { DocumentDraft } from '../types';
-import { layoutPages, type PdfItem, type PdfPage } from './pdfLayout';
+import { layoutPages, type PdfBookmark, type PdfItem, type PdfPage } from './pdfLayout';
 import { assertReadable, baseName, truncateTitle } from './text';
 
 type PdfJs = typeof import('pdfjs-dist');
@@ -32,6 +32,53 @@ function sensibleTitle(title: unknown): string | undefined {
   return t;
 }
 
+/** The parts of a pdf.js document that bookmarks need (a fake can stand in for tests). */
+export interface OutlineSource {
+  getOutline(): Promise<OutlineNode[] | null>;
+  getDestination(id: string): Promise<unknown[] | null>;
+  getPageIndex(ref: { num: number; gen: number }): Promise<number>;
+}
+
+export interface OutlineNode {
+  title: string;
+  dest: string | unknown[] | null;
+  items?: OutlineNode[];
+}
+
+/** Bookmarks beyond this many are ignored. */
+const MAX_BOOKMARKS = 5000;
+
+/** The top coordinate of an explicit destination `[page, {name}, ...args]`, when it has one. */
+function destinationTop(dest: unknown[]): number | null {
+  const kind = (dest[1] as { name?: string } | null)?.name;
+  const value = kind === 'XYZ' ? dest[3] : kind === 'FitH' || kind === 'FitBH' ? dest[2] : kind === 'FitR' ? dest[5] : null;
+  return typeof value === 'number' && Number.isFinite(value) ? value : null;
+}
+
+/** Flattens the outline in reading order, resolving each entry to a page and position. Never throws. */
+export async function readBookmarks(doc: OutlineSource): Promise<PdfBookmark[]> {
+  const outline = await doc.getOutline().catch(() => null);
+  if (!outline?.length) return [];
+  const out: PdfBookmark[] = [];
+  const walk = async (nodes: OutlineNode[], depth: number) => {
+    for (const node of nodes) {
+      if (out.length >= MAX_BOOKMARKS) return;
+      try {
+        const dest = typeof node.dest === 'string' ? await doc.getDestination(node.dest) : node.dest;
+        const ref = dest?.[0];
+        const page =
+          typeof ref === 'number' ? ref : ref && typeof ref === 'object' ? await doc.getPageIndex(ref as { num: number; gen: number }) : -1;
+        if (dest && page >= 0 && typeof node.title === 'string') out.push({ title: node.title, depth, page, top: destinationTop(dest) });
+      } catch {
+        // An unresolvable destination: skip this entry, keep its children.
+      }
+      if (node.items?.length) await walk(node.items, depth + 1);
+    }
+  };
+  await walk(outline, 1);
+  return out;
+}
+
 /** Extract a draft from PDF bytes with the given pdf.js module (injected so tests can use Node's build). */
 export async function pdfToDraft(pdfjs: PdfJs, data: Uint8Array, fileName: string): Promise<DocumentDraft> {
   const task = pdfjs.getDocument({ data });
@@ -58,7 +105,7 @@ export async function pdfToDraft(pdfjs: PdfJs, data: Uint8Array, fileName: strin
       pages.push({ items });
       page.cleanup();
     }
-    const blocks = layoutPages(pages);
+    const blocks = layoutPages(pages, await readBookmarks(doc as unknown as OutlineSource));
     assertReadable(
       blocks,
       'This PDF has no text layer (it is probably a scanned image), so there is nothing to read aloud. Run it through OCR first.',

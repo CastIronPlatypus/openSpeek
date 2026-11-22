@@ -12,7 +12,15 @@ export function formatClock(seconds: number): string {
 }
 
 export function formatListeningTime(wordCount: number, rate: number): string {
-  const minutes = Math.round(wordCount / WORDS_PER_MINUTE / rate);
+  return formatMinutes(Math.round(wordCount / WORDS_PER_MINUTE / rate));
+}
+
+/** A listening time in seconds, rounded to minutes ("< 1 min", "12 min", "1 h 5 min"). */
+export function formatDuration(seconds: number): string {
+  return formatMinutes(Math.round(seconds / 60));
+}
+
+function formatMinutes(minutes: number): string {
   if (minutes < 1) return '< 1 min';
   if (minutes < 60) return `${minutes} min`;
   const h = Math.floor(minutes / 60);
