@@ -1,4 +1,4 @@
-import type { Ref } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { useApp } from '../appModel';
 import { NextIcon, PrevIcon } from '../common/icons';
 import type { ExportState } from '../reader/useAudioExport';
@@ -16,16 +16,30 @@ interface PlayerBarProps {
   onExport: () => void;
   onCancelExport: () => void;
   onDismissExport: () => void;
+  /** Shown above the scrubber: the current section, when the document has some. */
+  section?: ReactNode;
+  /** Sentence indices to mark on the scrubber (section starts). */
+  marks?: readonly number[];
   ref: Ref<HTMLDivElement>;
 }
 
-export function PlayerBar({ sentenceCount, exportState, onExport, onCancelExport, onDismissExport, ref }: PlayerBarProps) {
+export function PlayerBar({
+  sentenceCount,
+  exportState,
+  onExport,
+  onCancelExport,
+  onDismissExport,
+  section,
+  marks,
+  ref,
+}: PlayerBarProps) {
   const { player } = useApp().services;
   return (
     <div className="player-bar" ref={ref} role="region" aria-label="Player">
       <div className="player-inner">
         <PlayerNotice exportState={exportState} onCancelExport={onCancelExport} onDismissExport={onDismissExport} />
-        <Scrubber count={sentenceCount} />
+        {section}
+        <Scrubber count={sentenceCount} marks={marks} />
         <div className="player-controls">
           <div className="player-side">
             <SpeedControl />

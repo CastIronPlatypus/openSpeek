@@ -7,11 +7,17 @@ export interface ShortcutActions {
   faster(): void;
   slower(): void;
   back(): void;
+  /** Section navigation; absent when the document has no sections. */
+  prevSection?(): void;
+  nextSection?(): void;
+  contents?(): void;
 }
 
 export const SHORTCUTS: { keys: string[]; label: string }[] = [
   { keys: ['Space'], label: 'Play / pause' },
   { keys: ['←', '→'], label: 'Previous / next sentence' },
+  { keys: ['⇧ ←', '⇧ →'], label: 'Previous / next section' },
+  { keys: ['C'], label: 'Contents' },
   { keys: ['↓', '↑'], label: 'Slower / faster' },
   { keys: ['[', ']'], label: 'Slower / faster' },
   { keys: ['Esc'], label: 'Back to library' },
@@ -43,10 +49,16 @@ export function useReaderShortcuts(actions: ShortcutActions) {
           if (!target.closest('button, a, [role="button"]')) run(a.toggle);
           break;
         case 'ArrowLeft':
-          run(a.prev);
+          if (!e.shiftKey) run(a.prev);
+          else if (a.prevSection) run(a.prevSection);
           break;
         case 'ArrowRight':
-          run(a.next);
+          if (!e.shiftKey) run(a.next);
+          else if (a.nextSection) run(a.nextSection);
+          break;
+        case 'c':
+        case 'C':
+          if (a.contents) run(a.contents);
           break;
         case 'ArrowUp':
         case ']':

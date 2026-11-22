@@ -103,5 +103,15 @@ export function useAutoFollow(enabled: boolean, bottomRef: RefObject<HTMLElement
     if (el) scrollToElement(el);
   }, [currentElement, scrollToElement]);
 
-  return { offscreen, jumpToCurrent };
+  /** Brings a sentence the user navigated to into view, as following would, and resumes following. */
+  const scrollToSentence = useCallback(
+    (sentenceIndex: number) => {
+      manualScrollAt.current = 0;
+      const el = document.querySelector<HTMLElement>(`[data-s="${sentenceIndex}"]`);
+      if (el) scrollToElement(el);
+    },
+    [scrollToElement],
+  );
+
+  return { offscreen, jumpToCurrent, scrollToSentence };
 }
