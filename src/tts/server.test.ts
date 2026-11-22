@@ -14,13 +14,18 @@ function setup(handler: Handler, now = () => 0) {
   return { fetcher, server, decode, edge: new RemoteEngine('edge', server, decode) };
 }
 
-const HEALTH = { ok: true, engines: { edge: true, phonon: false }, fetch: true };
+const HEALTH = { ok: true, engines: { edge: true, phonon: false }, fetch: true, feedback: true };
 
 describe('ServerConnection', () => {
   it('reports status, caches it ~10 s and forgets it when the URL changes', async () => {
     let t = 0;
     const { server, fetcher } = setup(() => json(HEALTH), () => t);
-    expect(await server.getStatus()).toEqual({ reachable: true, engines: { edge: true, phonon: false }, fetch: true });
+    expect(await server.getStatus()).toEqual({
+      reachable: true,
+      engines: { edge: true, phonon: false },
+      fetch: true,
+      feedback: true,
+    });
     t = 5_000;
     await server.getStatus();
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -34,7 +39,19 @@ describe('ServerConnection', () => {
 
   it('never rejects', async () => {
     const { server } = setup(() => Promise.reject(new TypeError('Failed to fetch')));
-    expect(await server.getStatus()).toEqual({ reachable: false, engines: { phonon: false, edge: false }, fetch: false });
+    expect(await server.getStatus()).toEqual({
+      reachable: false,
+      engines: { phonon: false, edge: false },
+      fetch: false,
+      feedback: false,
+    });
+  });
+
+  it('reports feedback as off when an older server leaves the field out', async () => {
+    const { server } = setup(() => json({ ok: true, engines: { edge: true, phonon: false }, fetch: true }));
+    expect(await server.getStatus()).toMatchObject({ reachable: true, feedback: false });
+    const odd = setup(() => json({ ...HEALTH, feedback: 'yes' }));
+    expect((await odd.server.getStatus()).feedback).toBe(false);
   });
 });
 

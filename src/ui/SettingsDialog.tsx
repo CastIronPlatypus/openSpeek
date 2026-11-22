@@ -2,6 +2,7 @@ import { useEffect, useId } from 'react';
 import type { ServerStatus, Theme } from '../types';
 import { useApp, useSettings } from './appModel';
 import { Dialog } from './common/Dialog';
+import { FeedbackIcon } from './common/icons';
 import { Switch } from './common/Switch';
 import { useStore } from './store';
 import { EnginePicker } from './voice/EnginePicker';
@@ -20,7 +21,13 @@ function describeStatus(status: ServerStatus | null): string {
   return offers.length ? `Connected · offers ${offers.join(', ')}` : 'Connected, but it offers no engines.';
 }
 
-export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () => void }) {
+interface SettingsDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onOpenFeedback: () => void;
+}
+
+export function SettingsDialog({ open, onClose, onOpenFeedback }: SettingsDialogProps) {
   const model = useApp();
   const [settings, update] = useSettings();
   const status = useStore(model.serverStatus);
@@ -137,6 +144,10 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
           server, and <strong>Edge online voices</strong> through that server to Microsoft.
         </p>
         <p>Your documents and reading progress are stored only in this browser.</p>
+        <button type="button" className="btn feedback-entry" onClick={onOpenFeedback}>
+          <FeedbackIcon />
+          Send feedback
+        </button>
       </section>
     </Dialog>
   );

@@ -144,6 +144,8 @@ export interface ServerStatus {
   engines: { phonon: boolean; edge: boolean };
   /** The server can fetch web pages for pasted links (`GET /api/fetch?url=`). */
   fetch: boolean;
+  /** The server accepts user feedback (`POST /api/feedback`); false for servers that predate it. */
+  feedback: boolean;
 }
 
 /** Real word timing from an engine that reports it (Edge does, Phonon does not). */
@@ -278,7 +280,9 @@ export interface Player {
 //
 // src/tts/index.ts      export function getEngine(id: EngineId): SpeechEngine  (one singleton per id)
 //                       export function setServerUrl(url: string): void       ('' = same origin)
-//                       export function getServerStatus(): Promise<ServerStatus>  (never rejects; briefly cached)
+//                       export function getServerUrl(): string               (as set; '' = same origin)
+//                       export function getServerStatus(maxAgeMs?): Promise<ServerStatus>  (never rejects; briefly cached)
+// src/feedback/index.ts export function sendFeedback(input, opts): Promise<{ id: string }>  (POST /api/feedback)
 // src/player/index.ts   export function getPlayer(): Player                   (singleton, uses getEngine)
 //
 // src/ingest/index.ts   export function segment(blocks: Block[]): Sentence[]

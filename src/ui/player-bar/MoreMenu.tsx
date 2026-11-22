@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { useSettings } from '../appModel';
-import { DownloadIcon, MoreIcon } from '../common/icons';
+import { DownloadIcon, FeedbackIcon, MoreIcon } from '../common/icons';
 import { Popover } from '../common/Popover';
 import { Switch } from '../common/Switch';
 import { clampFontSize, MAX_FONT_SIZE, MIN_FONT_SIZE } from '../reader/fontSize';
@@ -9,9 +9,10 @@ import type { ExportState } from '../reader/useAudioExport';
 interface MoreMenuProps {
   exportState: ExportState;
   onExport: () => void;
+  onFeedback: () => void;
 }
 
-export function MoreMenu({ exportState, onExport }: MoreMenuProps) {
+export function MoreMenu({ exportState, onExport, onFeedback }: MoreMenuProps) {
   const [{ fontSize, autoScroll }, update] = useSettings();
   const exporting = exportState.phase === 'running';
   const fontLabelId = useId();
@@ -65,6 +66,20 @@ export function MoreMenu({ exportState, onExport }: MoreMenuProps) {
             checked={autoScroll}
             onChange={(v) => update({ autoScroll: v })}
           />
+          <button
+            type="button"
+            className="menu-item"
+            onClick={() => {
+              close();
+              onFeedback();
+            }}
+          >
+            <FeedbackIcon />
+            <span>
+              Send feedback
+              <span className="muted small block">Report a bug or suggest an idea</span>
+            </span>
+          </button>
         </>
       )}
     </Popover>

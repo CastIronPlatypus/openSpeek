@@ -16,6 +16,7 @@ interface PlayerBarProps {
   onExport: () => void;
   onCancelExport: () => void;
   onDismissExport: () => void;
+  onFeedback: () => void;
   /** Shown above the scrubber: the current section, when the document has some. */
   section?: ReactNode;
   /** Sentence indices to mark on the scrubber (section starts). */
@@ -29,6 +30,7 @@ export function PlayerBar({
   onExport,
   onCancelExport,
   onDismissExport,
+  onFeedback,
   section,
   marks,
   ref,
@@ -55,7 +57,7 @@ export function PlayerBar({
           </div>
           <div className="player-side player-side--end">
             <VoiceControl />
-            <MoreMenu exportState={exportState} onExport={onExport} />
+            <MoreMenu exportState={exportState} onExport={onExport} onFeedback={onFeedback} />
           </div>
         </div>
       </div>

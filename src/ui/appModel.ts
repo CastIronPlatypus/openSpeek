@@ -1,5 +1,5 @@
 import { createContext, useContext } from 'react';
-import { ENGINE_NEEDS_SERVER, type EngineId, type ServerStatus, type Settings } from '../types';
+import { ENGINE_NEEDS_SERVER, type EngineId, type ServerStatus, type Settings, type SourceKind } from '../types';
 import { ENGINE_INFO, isEngineAvailable } from './engines';
 import type { Services } from './services';
 import { createSettingsStore, type SettingsStore } from './settings';
@@ -17,7 +17,10 @@ export interface AppModel {
   serverStatus: Store<ServerStatus | null>;
   /** A short, dismissable message shown as a toast. */
   notice: Store<string | null>;
-  refreshServerStatus(): Promise<ServerStatus>;
+  /** Source kind of the document open in the reader, `null` elsewhere (for feedback context). */
+  readerSourceKind: Store<SourceKind | null>;
+  /** Re-checks the server; `maxAgeMs` 0 skips the short-lived status cache. */
+  refreshServerStatus(maxAgeMs?: number): Promise<ServerStatus>;
   /** Uses the saved engine when the server offers it, otherwise Phonon on this device for this session. */
   ensureUsableEngine(): void;
   /** Applies the active engine, its voice and the rate to the player. */
@@ -37,6 +40,7 @@ export async function createAppModel(services: Services): Promise<AppModel> {
   const activeEngine = createStore<EngineId>(settings.get().engine);
   const serverStatus = createStore<ServerStatus | null>(null);
   const notice = createStore<string | null>(null);
+  const readerSourceKind = createStore<SourceKind | null>(null);
   let noticedFallback = false;
 
   const applyEngine = (engine: EngineId) => {
@@ -53,8 +57,9 @@ export async function createAppModel(services: Services): Promise<AppModel> {
     activeEngine,
     serverStatus,
     notice,
-    async refreshServerStatus() {
-      const status = await services.getServerStatus();
+    readerSourceKind,
+    async refreshServerStatus(maxAgeMs) {
+      const status = await services.getServerStatus(maxAgeMs);
       serverStatus.set(status);
       return status;
     },

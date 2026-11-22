@@ -10,6 +10,7 @@ import type {
   StoredDocument,
   VoiceInfo,
 } from '../types';
+import { sendFeedback, type FeedbackInput } from '../feedback';
 
 export interface Library {
   listDocuments(): Promise<DocMeta[]>;
@@ -39,7 +40,10 @@ export interface Services {
   ingest: Ingest;
   listVoices(engine: EngineId): Promise<VoiceInfo[]>;
   setServerUrl(url: string): void;
-  getServerStatus(): Promise<ServerStatus>;
+  /** Never rejects. Answers from a short-lived cache unless `maxAgeMs` is lower (0 = check now). */
+  getServerStatus(maxAgeMs?: number): Promise<ServerStatus>;
+  /** Sends feedback to the server set with `setServerUrl`; rejects with a readable Error. */
+  sendFeedback(input: FeedbackInput): Promise<{ id: string }>;
 }
 
 /** Caches per-engine voice lists for the session; a failed or empty fetch is retried next time. */
@@ -90,5 +94,6 @@ export async function loadServices(): Promise<Services> {
     listVoices: cacheVoices((id) => tts.getEngine(id).listVoices()),
     setServerUrl: tts.setServerUrl,
     getServerStatus: tts.getServerStatus,
+    sendFeedback: (input) => sendFeedback(input, { baseUrl: tts.getServerUrl() }),
   };
 }

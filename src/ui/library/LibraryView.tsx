@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import type { StoredDocument } from '../../types';
 import { useApp, useSettings } from '../appModel';
-import { AppHeader, SettingsButton, ThemeToggle } from '../common/AppHeader';
+import { AppHeader, FeedbackButton, SettingsButton, ThemeToggle } from '../common/AppHeader';
 import { LogoMark, UploadIcon } from '../common/icons';
 import { serverFetchPrefix } from '../engines';
 import { openReader } from '../useHashRoute';
@@ -15,7 +15,7 @@ import { useWindowFileDrop } from './useWindowFileDrop';
 import { useWindowPaste } from './useWindowPaste';
 import '../styles/library.css';
 
-export function LibraryView({ onOpenSettings }: { onOpenSettings: () => void }) {
+export function LibraryView({ onOpenSettings, onOpenFeedback }: { onOpenSettings: () => void; onOpenFeedback: () => void }) {
   const model = useApp();
   const { ingest } = model.services;
   const [settings] = useSettings();
@@ -92,6 +92,7 @@ export function LibraryView({ onOpenSettings }: { onOpenSettings: () => void }) 
         }
         end={
           <>
+            <FeedbackButton onClick={onOpenFeedback} />
             <ThemeToggle />
             <SettingsButton onClick={onOpenSettings} />
           </>

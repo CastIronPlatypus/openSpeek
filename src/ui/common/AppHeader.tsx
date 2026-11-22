@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Theme } from '../../types';
 import { useSettings } from '../appModel';
-import { GearIcon, MoonIcon, SunIcon, SystemThemeIcon } from './icons';
+import { FeedbackIcon, GearIcon, MoonIcon, SunIcon, SystemThemeIcon } from './icons';
 
 const NEXT_THEME: Record<Theme, Theme> = { system: 'light', light: 'dark', dark: 'system' };
 const THEME_ICON: Record<Theme, ReactNode> = {
@@ -25,6 +25,14 @@ export function SettingsButton({ onClick }: { onClick: () => void }) {
   return (
     <button type="button" className="icon-btn" aria-label="Settings" title="Settings" onClick={onClick}>
       <GearIcon />
+    </button>
+  );
+}
+
+export function FeedbackButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button type="button" className="icon-btn" aria-label="Send feedback" title="Send feedback" onClick={onClick}>
+      <FeedbackIcon />
     </button>
   );
 }

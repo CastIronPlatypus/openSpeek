@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type RefObject } from 'react';
 import { nextSectionStart, outline, previousSectionStart, sectionAt } from '../../ingest/outline';
-import type { Sentence, StoredDocument } from '../../types';
+import type { Sentence, SourceKind, StoredDocument } from '../../types';
 import { useApp, useSettings } from '../appModel';
 import { AppHeader, SettingsButton, ThemeToggle } from '../common/AppHeader';
 import { BackIcon, KeyboardIcon, LocateIcon } from '../common/icons';
@@ -25,9 +25,10 @@ import '../styles/reader.css';
 interface ReaderViewProps {
   id: string;
   onOpenSettings: () => void;
+  onOpenFeedback: () => void;
 }
 
-export function ReaderView({ id, onOpenSettings }: ReaderViewProps) {
+export function ReaderView({ id, onOpenSettings, onOpenFeedback }: ReaderViewProps) {
   const state = useReaderDocument(id);
   const title = state.status === 'ready' ? state.doc.title : '';
 
@@ -53,7 +54,7 @@ export function ReaderView({ id, onOpenSettings }: ReaderViewProps) {
         }
       />
       {state.status === 'ready' ? (
-        <Reader doc={state.doc} sentences={state.sentences} />
+        <Reader doc={state.doc} sentences={state.sentences} onOpenFeedback={onOpenFeedback} />
       ) : (
         <main className="reader-message">
           {state.status === 'loading' && <span className="spinner" aria-label="Loading document" />}
@@ -76,7 +77,7 @@ function ReaderProblem({ text }: { text: string }) {
   );
 }
 
-function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[] }) {
+function Reader({ doc, sentences, onOpenFeedback }: { doc: StoredDocument; sentences: Sentence[]; onOpenFeedback: () => void }) {
   const model = useApp();
   const { player } = model.services;
   const [settings] = useSettings();
@@ -133,6 +134,7 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
   const nextSection = useCallback(() => goToSection(1), [goToSection]);
 
   useProgressSaver(doc.id);
+  useReaderSourceKind(doc.source.kind);
   usePlayerBarHeight(barRef);
   useMediaMetadata(doc.title, sectionHub);
   useReaderShortcuts({
@@ -182,6 +184,7 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
         onExport={audioExport.start}
         onCancelExport={audioExport.cancel}
         onDismissExport={audioExport.dismiss}
+        onFeedback={onOpenFeedback}
         marks={hasContents ? sectionStarts : undefined}
         section={
           hasContents && <SectionButton ref={sectionButtonRef} hub={sectionHub} expanded={contentsOpen} onClick={toggleContents} />
@@ -189,6 +192,15 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
       />
     </>
   );
+}
+
+/** Tells feedback which kind of document is open (only the kind: never its title, text or origin). */
+function useReaderSourceKind(kind: SourceKind) {
+  const { readerSourceKind } = useApp();
+  useEffect(() => {
+    readerSourceKind.set(kind);
+    return () => readerSourceKind.set(null);
+  }, [readerSourceKind, kind]);
 }
 
 /** Publishes the bar's height as `--player-bar-h` so floating UI (pill, toasts) can sit above it. */

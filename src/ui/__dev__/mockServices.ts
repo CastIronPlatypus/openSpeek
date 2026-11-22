@@ -1,6 +1,7 @@
 /**
  * Dev-only stand-ins for the player, importers, library and engines, selected with `?mock`.
- * Options (comma separated): `server` (server reachable, offers everything), `seed` (start with
+ * Options (comma separated): `server` (server reachable, offers everything), `nofeedback` (the
+ * server does not take feedback), `feedbackfail` (sending feedback fails), `seed` (start with
  * documents), `loading` (model download stalls at 42%). Example: `?mock=seed,server`.
  */
 import {
@@ -251,8 +252,8 @@ export function createMockServices(mode: string): Services {
   }
 
   const status: ServerStatus = opts.has('server')
-    ? { reachable: true, engines: { phonon: true, edge: true }, fetch: true }
-    : { reachable: false, engines: { phonon: false, edge: false }, fetch: false };
+    ? { reachable: true, engines: { phonon: true, edge: true }, fetch: true, feedback: !opts.has('nofeedback') }
+    : { reachable: false, engines: { phonon: false, edge: false }, fetch: false, feedback: false };
 
   return {
     player: new MockPlayer(opts.has('loading')),
@@ -302,6 +303,13 @@ export function createMockServices(mode: string): Services {
     getServerStatus: async () => {
       await delay(150);
       return status;
+    },
+    async sendFeedback(input) {
+      await delay(700);
+      if (!status.feedback) throw new Error('This openSpeek server doesn’t accept feedback.');
+      if (opts.has('feedbackfail')) throw new Error('Can’t reach the openSpeek server. Check your connection and try again.');
+      console.info('[mock] feedback', input);
+      return { id: `mock-${Date.now()}` };
     },
   };
 }

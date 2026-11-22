@@ -1,0 +1,93 @@
+/* ───────── Feedback dialog ───────── */
+.feedback-form {
+  display: grid;
+  gap: 18px;
+  padding-top: 12px;
+}
+.segmented--tall .segmented-option span {
+  min-height: var(--tap);
+}
+.feedback-label-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.feedback-counter {
+  color: var(--muted);
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.feedback-counter[data-state='near'] {
+  opacity: 1;
+  color: var(--text);
+  font-weight: 600;
+}
+.feedback-counter[data-state='over'] {
+  opacity: 1;
+  color: var(--danger);
+  font-weight: 650;
+}
+.feedback-message {
+  min-height: 132px;
+  max-height: 50dvh;
+}
+.feedback-unavailable {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  color: var(--text);
+}
+.feedback-checking {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.spinner--small {
+  width: 14px;
+  height: 14px;
+  border-width: 2px;
+}
+.spinner--on-accent {
+  border-color: color-mix(in srgb, var(--on-accent) 35%, transparent);
+  border-top-color: var(--on-accent);
+}
+.feedback-disclosure {
+  display: grid;
+  gap: 6px;
+}
+.feedback-details summary {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tap);
+  color: var(--accent);
+  font-weight: 560;
+  cursor: pointer;
+}
+.feedback-details dl {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+}
+.feedback-details dl div {
+  display: grid;
+  grid-template-columns: 7.5em 1fr;
+  gap: 8px;
+}
+.feedback-details dt {
+  color: var(--muted);
+}
+.feedback-details dd {
+  margin: 0;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+@media (max-width: 599px) {
+  .dialog--sheet .feedback-form {
+    padding-top: 0;
+  }
+}

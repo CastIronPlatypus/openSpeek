@@ -15,6 +15,7 @@ const UNREACHABLE: ServerStatus = {
   reachable: false,
   engines: { phonon: false, edge: false },
   fetch: false,
+  feedback: false,
 };
 
 type Fetcher = (input: string, init?: RequestInit) => Promise<Response>;
@@ -70,6 +71,7 @@ export class ServerConnection {
         reachable: true,
         engines: { phonon: engines.phonon === true, edge: engines.edge === true },
         fetch: body.fetch === true,
+        feedback: body.feedback === true,
       };
     } catch {
       return UNREACHABLE;

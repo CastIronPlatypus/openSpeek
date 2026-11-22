@@ -138,6 +138,12 @@ export const CloseIcon = (p: IconProps) => (
     <path d="M6 6l12 12M18 6L6 18" />
   </Svg>
 );
+export const FeedbackIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M6.5 4h11A2.5 2.5 0 0 1 20 6.5v8a2.5 2.5 0 0 1-2.5 2.5H11.5l-4.5 3.5V17h-.5A2.5 2.5 0 0 1 4 14.5v-8A2.5 2.5 0 0 1 6.5 4z" />
+    <path d="M8.5 9h7M8.5 12.5h4.5" />
+  </Svg>
+);
 export const KeyboardIcon = (p: IconProps) => (
   <Svg {...p}>
     <rect x="2.5" y="6" width="19" height="12" rx="2" />

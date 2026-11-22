@@ -446,9 +446,8 @@ input[type='range'] {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 94%, transparent);
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  /* Opaque: text scrolling underneath must not show through. */
+  background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding-top: env(safe-area-inset-top, 0px);
 }
@@ -657,7 +656,33 @@ input[type='range'] {
   gap: 10px;
   padding: 0 24px 20px;
 }
+.dialog--sheet {
+  width: min(500px, calc(100vw - 32px));
+}
 @media (max-width: 599px) {
+  /* A bottom sheet, lifted above the on-screen keyboard (see useKeyboardInset in Dialog.tsx). */
+  .dialog--sheet {
+    width: 100%;
+    max-width: none;
+    margin: auto 0 var(--keyboard-inset, 0px);
+    max-height: calc(100dvh - var(--keyboard-inset, 0px) - env(safe-area-inset-top, 0px) - 12px);
+    border-width: 1px 0 0;
+    border-radius: 18px 18px 0 0;
+  }
+  .dialog--sheet[open] {
+    animation: sheet-in 0.24s var(--ease);
+  }
+  .dialog--sheet .dialog-head {
+    padding: 8px 8px 8px 20px;
+  }
+  .dialog--sheet .dialog-body {
+    padding: 12px 20px 16px;
+    overscroll-behavior: contain;
+  }
+  .dialog--sheet .dialog-foot {
+    padding: 12px 20px calc(12px + var(--safe-bottom));
+    border-top: 1px solid var(--border);
+  }
   .dialog--large {
     width: 100vw;
     max-width: none;
@@ -714,6 +739,12 @@ input[type='range'] {
 .about p {
   font-size: 0.9375rem;
   line-height: 1.6;
+}
+.feedback-entry {
+  justify-self: start;
+}
+.feedback-entry svg {
+  color: var(--accent);
 }
 
 /* ───────── Engine picker & voice list ───────── */

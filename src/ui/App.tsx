@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppContext, createAppModel, useApp, useSettings, type AppModel } from './appModel';
 import { Toast } from './common/Toast';
+import { FeedbackDialog } from './feedback/FeedbackDialog';
 import { LibraryView } from './library/LibraryView';
 import { ReaderView } from './reader/ReaderView';
 import { loadServices } from './services';
@@ -44,18 +45,24 @@ export default function App() {
 function Shell() {
   const route = useHashRoute();
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   useTheme();
   useServerMonitor();
   const openSettings = () => setSettingsOpen(true);
+  const openFeedback = () => {
+    setSettingsOpen(false);
+    setFeedbackOpen(true);
+  };
 
   return (
     <>
       {route.view === 'read' ? (
-        <ReaderView key={route.id} id={route.id} onOpenSettings={openSettings} />
+        <ReaderView key={route.id} id={route.id} onOpenSettings={openSettings} onOpenFeedback={openFeedback} />
       ) : (
-        <LibraryView onOpenSettings={openSettings} />
+        <LibraryView onOpenSettings={openSettings} onOpenFeedback={openFeedback} />
       )}
-      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <SettingsDialog open={settingsOpen} onClose={() => setSettingsOpen(false)} onOpenFeedback={openFeedback} />
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} route={route.view === 'read' ? 'reader' : 'library'} />
       <Toast />
     </>
   );

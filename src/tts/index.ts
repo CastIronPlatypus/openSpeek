@@ -22,7 +22,12 @@ export function setServerUrl(url: string): void {
   server.setUrl(url);
 }
 
-/** What the server offers. Never rejects; cached for about 10 s. */
-export function getServerStatus(): Promise<ServerStatus> {
-  return server.getStatus();
+/** The server's base URL as set with `setServerUrl` (`''` = same origin), for other server APIs. */
+export function getServerUrl(): string {
+  return server.baseUrl;
+}
+
+/** What the server offers. Never rejects; cached for about 10 s, or `maxAgeMs` when given. */
+export function getServerStatus(maxAgeMs?: number): Promise<ServerStatus> {
+  return server.getStatus(maxAgeMs);
 }
