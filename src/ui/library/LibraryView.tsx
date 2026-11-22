@@ -103,6 +103,7 @@ export function LibraryView({ onOpenSettings }: { onOpenSettings: () => void }) 
           jobs={jobs}
           onDismissJob={dismiss}
           onText={importText}
+          onUrl={importUrl}
           onFiles={importFiles}
           onPaste={pasteFromClipboard}
           pasteNotice={pasteNotice}

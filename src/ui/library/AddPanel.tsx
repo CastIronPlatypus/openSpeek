@@ -1,11 +1,12 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { AlertIcon, CloseIcon, PasteIcon, TextIcon, UploadIcon } from '../common/icons';
+import { AlertIcon, CloseIcon, LinkIcon, PasteIcon, TextIcon, UploadIcon } from '../common/icons';
 import type { ImportJob } from './useImports';
 
-type Tab = 'text' | 'file';
+type Tab = 'text' | 'url' | 'file';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-  { id: 'text', label: 'Text or link', icon: <TextIcon size={18} /> },
-  { id: 'file', label: 'Upload file', icon: <UploadIcon size={18} /> },
+  { id: 'text', label: 'Text', icon: <TextIcon size={18} /> },
+  { id: 'url', label: 'URL', icon: <LinkIcon size={18} /> },
+  { id: 'file', label: 'Upload', icon: <UploadIcon size={18} /> },
 ];
 
 const PASTE_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
@@ -16,6 +17,7 @@ interface AddPanelProps {
   onDismissJob: (id: number) => void;
   /** Each resolves to whether the import succeeded, so the form can clear itself. */
   onText: (text: string, title: string) => Promise<boolean>;
+  onUrl: (url: string) => Promise<boolean>;
   onFiles: (files: File[]) => void;
   /** The Paste button: reads the clipboard (inside this click) and adds what is on it. */
   onPaste: () => void;
@@ -29,6 +31,7 @@ export function AddPanel({
   jobs,
   onDismissJob,
   onText,
+  onUrl,
   onFiles,
   onPaste,
   pasteNotice,
@@ -36,7 +39,7 @@ export function AddPanel({
 }: AddPanelProps) {
   const [tab, setTab] = useState<Tab>('text');
   const baseId = useId();
-  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ text: null, file: null });
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ text: null, url: null, file: null });
 
   const onTabKey = (e: KeyboardEvent) => {
     const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
@@ -96,6 +99,7 @@ export function AddPanel({
       </div>
       <div className="tab-panel" role="tabpanel" id={`${baseId}-panel`} aria-labelledby={`${baseId}-tab-${tab}`}>
         {tab === 'text' && <TextForm onSubmit={onText} />}
+        {tab === 'url' && <UrlForm onSubmit={onUrl} />}
         {tab === 'file' && <FileDrop accept={acceptedFileTypes} onFiles={onFiles} />}
       </div>
       <ImportJobs jobs={jobs} onDismiss={onDismissJob} />
@@ -125,7 +129,7 @@ function TextForm({ onSubmit }: { onSubmit: AddPanelProps['onText'] }) {
       />
       <textarea
         className="input textarea"
-        placeholder="Paste or type text, or a link to a web page…"
+        placeholder="Paste or type the text you want to hear…"
         aria-label="Text to listen to"
         rows={5}
         value={text}
@@ -133,6 +137,39 @@ function TextForm({ onSubmit }: { onSubmit: AddPanelProps['onText'] }) {
       />
       <div className="add-actions">
         <button type="submit" className="btn btn--primary" disabled={!text.trim()}>
+          Listen
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function UrlForm({ onSubmit }: { onSubmit: AddPanelProps['onUrl'] }) {
+  const [url, setUrl] = useState('');
+  const submit = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!url.trim()) return;
+    if (await onSubmit(url.trim())) setUrl('');
+  };
+  return (
+    <form className="add-form" onSubmit={submit}>
+      {/* Not type="url": that rejects an address typed without its scheme, which the importer accepts. */}
+      <input
+        className="input"
+        type="text"
+        inputMode="url"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        enterKeyHint="go"
+        placeholder="https://example.com/article"
+        aria-label="Web page address"
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+      />
+      <p className="muted small">The article on that page is added to your library and opened.</p>
+      <div className="add-actions">
+        <button type="submit" className="btn btn--primary" disabled={!url.trim()}>
           Listen
         </button>
       </div>

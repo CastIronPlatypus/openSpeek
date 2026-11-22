@@ -116,6 +116,11 @@ export const UploadIcon = (p: IconProps) => (
     <path d="M12 16V5M7 9.5l5-5 5 5M5 20h14" />
   </Svg>
 );
+export const LinkIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M10 14a4 4 0 0 0 5.66 0l3-3a4 4 0 0 0-5.66-5.66l-1 1M14 10a4 4 0 0 0-5.66 0l-3 3a4 4 0 0 0 5.66 5.66l1-1" />
+  </Svg>
+);
 export const TextIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M5 6h14M5 10.5h14M5 15h9M5 19.5h6" />
