@@ -1,0 +1,13 @@
+<!doctype html><meta charset="utf-8"><title>player harness</title>
+<button id="go">play</button>
+<script type="module">
+import { getPlayer } from '../player/index.ts';
+const player = getPlayer();
+const texts = ['Hello there.', 'This is the second sentence, read with Phonon.', 'And this is the last one.'];
+player.setDocument(texts.map((text, index) => ({ index, block: 0, start: 0, end: text.length, text })));
+const log = (window.__log = []);
+let t0 = performance.now();
+player.subscribe(() => { const s = player.getState(); log.push({ t: Math.round(performance.now() - t0), status: s.status, i: s.sentenceIndex, word: s.word, elapsed: +s.elapsed.toFixed(2), duration: +s.duration.toFixed(2), err: s.error }); });
+document.getElementById('go').onclick = () => { t0 = performance.now(); player.setRate(1.5); void player.play(); };
+window.__export = async () => { const b = await player.exportWav(player.__doc ?? texts.map((text, index) => ({ index, block: index, start: 0, end: text.length, text }))); return b.size; };
+</script>

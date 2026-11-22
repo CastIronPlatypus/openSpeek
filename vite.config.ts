@@ -17,7 +17,8 @@ export default defineConfig({
   preview: { headers: isolation },
   // phonon-tts locates its worker and wasm with `new URL(..., import.meta.url)`;
   // pre-bundling would break those relative paths in dev.
-  optimizeDeps: { exclude: ['phonon-tts'] },
+  // pdf.js is imported lazily; listing it avoids a full page reload on the first PDF import in dev.
+  optimizeDeps: { exclude: ['phonon-tts'], include: ['pdfjs-dist/legacy/build/pdf.mjs'] },
   worker: { format: 'es' },
   build: { target: 'es2022' },
   test: { environment: 'jsdom', include: ['src/**/*.test.ts', 'src/**/*.test.tsx'] },
