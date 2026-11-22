@@ -12,7 +12,7 @@ origin. Errors are JSON `{ "error": "human readable message" }` with a 4xx/5xx s
 ## `GET /api/health`
 
 ```json
-{ "ok": true, "engines": { "edge": true, "phonon": false }, "fetch": true }
+{ "ok": true, "engines": { "edge": true, "phonon": false }, "fetch": true, "feedback": true }
 ```
 
 `engines.phonon` is true only when a Phonon backend is configured and answering.
@@ -48,3 +48,63 @@ Response (JSON):
 Returns the page's HTML (`text/html; charset=utf-8`) for the importer. Only `http`/`https`,
 refuses loopback, private and link-local addresses (including after redirects), caps the
 body size and time.
+
+## `POST /api/feedback`
+
+Saves one piece of user feedback as a Markdown file on the server. `feedback` in
+`/api/health` says whether this is enabled.
+
+Request (JSON):
+
+```json
+{
+  "message": "The voice picker is hard to reach on my phone.",
+  "category": "bug",
+  "contact": "optional@example.com",
+  "context": {
+    "route": "reader",
+    "engine": "phonon",
+    "voice": "Zoey",
+    "theme": "dark",
+    "viewport": "390x844",
+    "language": "en-GB",
+    "appVersion": "0.1.0",
+    "standalone": false,
+    "sourceKind": "pdf"
+  }
+}
+```
+
+- `message` is required, 1–5000 characters after trimming.
+- `category` is `bug`, `idea` or `other` (default `other`).
+- `contact` is optional free text, at most 200 characters.
+- `context` is optional; unknown keys are dropped, values are short strings, numbers or booleans.
+  It never contains document text or titles.
+
+Response: `201` with `{ "ok": true, "id": "20261122-153012-a1b2c3" }`.
+
+Each submission becomes one file, `<FEEDBACK_DIR>/<YYYY-MM-DD>-<HHMMSS>-<id suffix>.md` (UTC),
+with YAML front matter followed by the message as written:
+
+```markdown
+---
+id: "20261122-153012-a1b2c3"
+date: "2026-11-22T15:30:12.000Z"
+category: "bug"
+contact: "optional@example.com"
+route: "reader"
+engine: "phonon"
+voice: "Zoey"
+theme: "dark"
+viewport: "390x844"
+language: "en-GB"
+app_version: "0.1.0"
+standalone: false
+source_kind: "pdf"
+user_agent: "Mozilla/5.0 …"
+---
+
+The voice picker is hard to reach on my phone.
+```
+
+The client's IP address is not stored.
