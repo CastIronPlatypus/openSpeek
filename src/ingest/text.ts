@@ -74,3 +74,21 @@ export function importText(text: string, title?: string): DocumentDraft {
     blocks,
   };
 }
+
+/** Comparison key for headings and labels: case, accents, spacing and punctuation ignored. */
+export function headingKey(text: string): string {
+  return text.normalize('NFKD').toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+}
+
+/**
+ * Whether a heading-like text and a table-of-contents label name the same thing: equal keys, or
+ * one ending with the other ("Chapter 1. Loomings" and "Loomings", "1 Loomings").
+ */
+export function labelsMatch(text: string, label: string): boolean {
+  const a = headingKey(text);
+  const b = headingKey(label);
+  if (!a || !b) return false;
+  if (a === b) return true;
+  const [short, long] = a.length < b.length ? [a, b] : [b, a];
+  return short.length >= 4 && long.endsWith(short);
+}
