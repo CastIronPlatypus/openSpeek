@@ -180,12 +180,8 @@ export class ReadAloudPlayer implements Player {
     this.sentences = sentences;
     this.unload();
     const empty = sentences.length === 0;
-    this.set({
-      status: empty ? 'idle' : 'paused',
-      sentenceIndex: empty ? -1 : clampIndex(startIndex, sentences.length),
-      word: null,
-      error: null,
-    }, true);
+    const sentenceIndex = empty ? -1 : clampIndex(startIndex, sentences.length);
+    this.set({ status: empty ? 'idle' : 'paused', sentenceIndex, word: null, error: null }, true);
     this.fill();
   }
 
