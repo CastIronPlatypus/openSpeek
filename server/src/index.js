@@ -21,7 +21,8 @@ server.listen(config.port, config.host, () => {
   console.log(
     `[openspeek] static: ${config.staticDir} | edge: ${config.edgeEnabled ? 'on' : 'off'} | ` +
       `phonon: ${config.phononUrl ? `http ${config.phononUrl}` : config.phononCmd ? `cli ${config.phononCmd}` : 'ptts on PATH if present'}` +
-      (config.httpsProxy ? ' | outbound via HTTPS_PROXY' : ''),
+      (config.httpsProxy ? ' | outbound via HTTPS_PROXY' : '') +
+      ` | feedback: ${config.feedbackEnabled ? config.feedbackDir : 'off'}`,
   );
 });
 

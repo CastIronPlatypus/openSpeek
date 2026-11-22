@@ -91,8 +91,10 @@ export class RateLimiter {
   }
 
   sweep(now = Date.now()) {
+    // Forget a bucket only once it would have refilled anyway, so slow limits (per hour) hold.
+    const idle = Math.max(10 * 60_000, this.perMinute > 0 ? (this.capacity / this.perMinute) * 60_000 : 0);
     for (const [key, b] of this.buckets) {
-      if (now - b.at > 10 * 60_000) this.buckets.delete(key);
+      if (now - b.at > idle) this.buckets.delete(key);
     }
   }
 

@@ -50,6 +50,11 @@ function bool(v, fallback) {
  * @property {boolean} fetchProxyPinIp Through the proxy, CONNECT to the vetted IP, not the name.
  * @property {string} httpsProxy     Outbound proxy for Edge and page fetches ('' = direct).
  * @property {string} noProxy
+ * @property {boolean} feedbackEnabled
+ * @property {string} feedbackDir     Where feedback Markdown files are written.
+ * @property {number} feedbackRatePerHour
+ * @property {number} feedbackMaxFiles Refuse new feedback (507) once this many files exist.
+ * @property {number} feedbackBodyLimit Max JSON body bytes for `/api/feedback`.
  */
 
 /**
@@ -81,5 +86,11 @@ export function loadConfig(env = process.env) {
     fetchProxyPinIp: bool(env.FETCH_PROXY_PIN_IP, false),
     httpsProxy: env.HTTPS_PROXY || env.https_proxy || '',
     noProxy: env.NO_PROXY || env.no_proxy || '',
+    feedbackEnabled: bool(env.FEEDBACK, true),
+    feedbackDir: path.resolve(env.FEEDBACK_DIR || path.join(here, '..', 'data', 'feedback')),
+    feedbackRatePerHour: int(env.FEEDBACK_RATE_LIMIT, 10, 0),
+    feedbackMaxFiles: int(env.FEEDBACK_MAX_FILES, 10000, 1),
+    // 5000 astral characters escaped as \uXXXX\uXXXX are 60 KB; leave room for the rest.
+    feedbackBodyLimit: Math.max(int(env.BODY_LIMIT, 16 * 1024, 1024, 1024 * 1024), 96 * 1024),
   };
 }

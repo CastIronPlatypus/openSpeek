@@ -17,6 +17,10 @@ services:
       CORS_ORIGIN: "*"
       # Edge TTS sends text to Microsoft; set EDGE_TTS: "0" to turn it off.
       EDGE_TTS: "1"
+      # User feedback is saved as Markdown files in the openspeek-feedback volume.
+      FEEDBACK_DIR: /data/feedback
+    volumes:
+      - openspeek-feedback:/data/feedback
     depends_on:
       - phonon
     restart: unless-stopped
@@ -36,3 +40,4 @@ services:
 
 volumes:
   phonon-cache:
+  openspeek-feedback:

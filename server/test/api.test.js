@@ -26,7 +26,7 @@ async function expectError(r, status, re) {
 test('health', async () => {
   const r = await fetch(`${srv.url}/api/health`);
   assert.equal(r.status, 200);
-  assert.deepEqual(await r.json(), { ok: true, engines: { edge: true, phonon: false }, fetch: true });
+  assert.deepEqual(await r.json(), { ok: true, engines: { edge: true, phonon: false }, fetch: true, feedback: true });
   assert.equal(r.headers.get('access-control-allow-origin'), '*');
   assert.equal(r.headers.get('cross-origin-resource-policy'), 'cross-origin');
   assert.equal(r.headers.get('cross-origin-embedder-policy'), 'credentialless');

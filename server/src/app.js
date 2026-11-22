@@ -3,6 +3,7 @@
  * `close()` for shutdown; `index.js` binds it to a port. Dependencies can be injected for tests.
  */
 import { EdgeTts } from './edge/tts.js';
+import { FeedbackStore, charCount, validateFeedback } from './feedback.js';
 import { fetchPage } from './fetch/fetcher.js';
 import { HttpError, readJsonBody, sendError, sendJson } from './http-util.js';
 import { RateLimiter } from './limits.js';
@@ -16,6 +17,7 @@ const ENGINES = new Set(['edge', 'phonon']);
  * @property {Pick<EdgeTts, 'listVoices' | 'synthesize' | 'close'>} [edge]
  * @property {Pick<Phonon, 'available' | 'listVoices' | 'synthesize' | 'close'>} [phonon]
  * @property {(url: string) => Promise<{ html: string, url: string }>} [fetchPage]
+ * @property {FeedbackStore} [feedback]
  */
 
 /**
@@ -32,6 +34,9 @@ export function createApp(config, deps = {}) {
   const statics = new StaticFiles(config.staticDir);
   const ttsLimiter = new RateLimiter(config.ttsRatePerMinute);
   const fetchLimiter = new RateLimiter(config.fetchRatePerMinute);
+  const feedbackLimiter = new RateLimiter(config.feedbackRatePerHour / 60, config.feedbackRatePerHour);
+  const feedback = deps.feedback ?? new FeedbackStore({ dir: config.feedbackDir, maxFiles: config.feedbackMaxFiles });
+  if (config.feedbackEnabled) void feedback.init(); // create the directory now; logs if it cannot
   const origins = config.corsOrigin.split(',').map((s) => s.trim()).filter(Boolean);
 
   /** @param {import('node:http').IncomingMessage} req */
@@ -86,7 +91,13 @@ export function createApp(config, deps = {}) {
       case '/api/health': {
         allow('GET', 'HEAD');
         const phononOk = await phonon.available().catch(() => false);
-        sendJson(res, 200, { ok: true, engines: { edge: config.edgeEnabled, phonon: phononOk }, fetch: config.fetchEnabled });
+        const feedbackOk = config.feedbackEnabled && (await feedback.available());
+        sendJson(res, 200, {
+          ok: true,
+          engines: { edge: config.edgeEnabled, phonon: phononOk },
+          fetch: config.fetchEnabled,
+          feedback: feedbackOk,
+        });
         return;
       }
       case '/api/voices': {
@@ -160,6 +171,22 @@ export function createApp(config, deps = {}) {
         res.end(data);
         return;
       }
+      case '/api/feedback': {
+        if (!config.feedbackEnabled) throw new HttpError(404, 'Not found');
+        allow('POST');
+        feedbackLimiter.take(clientIp(req));
+        if (!(await feedback.available())) {
+          throw new HttpError(503, 'Feedback storage is not available on this server right now');
+        }
+        const type = String(req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase();
+        if (type !== 'application/json') throw new HttpError(415, 'Content-Type must be application/json');
+        const input = validateFeedback(await readJsonBody(req, config.feedbackBodyLimit));
+        const ua = req.headers['user-agent'];
+        const id = await feedback.save({ ...input, userAgent: typeof ua === 'string' ? ua : undefined });
+        console.log(`[openspeek] feedback ${id}: category=${input.category} length=${charCount(input.message)}`);
+        sendJson(res, 201, { ok: true, id });
+        return;
+      }
       default:
         throw new HttpError(404, 'Not found');
     }
@@ -201,6 +228,7 @@ export function createApp(config, deps = {}) {
   function close() {
     ttsLimiter.close();
     fetchLimiter.close();
+    feedbackLimiter.close();
     edge.close();
     phonon.close();
   }

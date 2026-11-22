@@ -6,6 +6,7 @@ server adds:
 - **Edge TTS**: Microsoft Edge's online read-aloud voices, with word timings.
 - **Server-side Phonon**: for devices too slow to run Phonon in the browser.
 - **`/api/fetch`**: fetches web pages for URL import when a site blocks cross-origin requests.
+- **`/api/feedback`**: saves feedback sent from the app as Markdown files.
 - **Static hosting** of the built app (`dist/`), so one process is a complete deployment.
 
 The API is described in [`docs/server-api.md`](../docs/server-api.md).
@@ -72,6 +73,10 @@ The server uses one of these backends:
 | `HTTPS_PROXY` / `NO_PROXY` | unset | Outbound HTTP proxy for Edge TTS and page fetches. It is reached with `CONNECT`. Phonon traffic never goes through it. |
 | `FETCH_USE_PROXY` | on | Set to `0` so page fetches go direct even when `HTTPS_PROXY` is set. |
 | `FETCH_PROXY_PIN_IP` | off | When page fetches go through the proxy, `CONNECT` to the IP address the server checked instead of to the host name. See below. |
+| `FEEDBACK` | on | Set to `0` to turn off `/api/feedback` (it then answers 404). |
+| `FEEDBACK_DIR` | `server/data/feedback` | Where feedback files are written. Created if missing. `/data/feedback` in the Docker image. |
+| `FEEDBACK_RATE_LIMIT` | `10` | `/api/feedback` submissions per hour per IP (`0` turns limiting off). |
+| `FEEDBACK_MAX_FILES` | `10000` | Once the directory holds this many `.md` files, new feedback is refused with 507. |
 
 ## Privacy and the Edge TTS caveat
 
@@ -83,6 +88,26 @@ token algorithm in `src/edge/drm.js` follow the open-source
 [edge-tts](https://github.com/rany2/edge-tts) project (7.3.1). If Edge TTS starts failing, check
 that project first. Set `EDGE_TTS=0` to turn it off. Phonon, in the browser or on the server, keeps
 the text on machines you control.
+
+## Feedback
+
+`POST /api/feedback` (see [`docs/server-api.md`](../docs/server-api.md#post-apifeedback)) saves
+each submission as one file in `FEEDBACK_DIR`, named
+`YYYY-MM-DD-HHMMSS-<random hex>.md` (UTC), with YAML front matter (id, date, category,
+optional contact, a few app context fields, the browser's user agent) followed by the message.
+The server picks the file name; nothing the client sends becomes part of a path. Every
+front-matter value is a single-line, double-quoted string (or a bare `true`/`false`), so a
+message cannot add keys or end the front matter early. The client's IP address is not stored,
+and message text is not logged. The JSON body limit for this route is 96 KB (or `BODY_LIMIT`, if
+larger), enough for 5000 characters of any script.
+
+If the directory cannot be created or written, `/api/health` reports `feedback: false` and the
+endpoint answers 503; the rest of the server keeps working. With Docker Compose, the files live
+in the `openspeek-feedback` volume (`docker compose cp openspeek:/data/feedback ./feedback` copies
+them out).
+
+Feedback can contain personal data (for example a contact address); as the operator you are
+responsible for how you store, use and delete it.
 
 ## Page fetching and SSRF
 

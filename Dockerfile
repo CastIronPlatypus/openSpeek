@@ -22,12 +22,16 @@ RUN npm ci --omit=dev --no-audit --no-fund
 FROM node:22-bookworm-slim
 ENV NODE_ENV=production \
     HOST=0.0.0.0 \
-    PORT=8787
+    PORT=8787 \
+    FEEDBACK_DIR=/data/feedback
 WORKDIR /app
 COPY --from=server-deps /app/server/node_modules ./server/node_modules
 COPY server/package.json ./server/package.json
 COPY server/src ./server/src
 COPY --from=client /app/dist ./dist
+# Feedback files; mount a volume here to keep them (docker-compose.yml does).
+RUN mkdir -p /data/feedback && chown -R node:node /data && chmod 750 /data/feedback
+VOLUME /data/feedback
 USER node
 EXPOSE 8787
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
