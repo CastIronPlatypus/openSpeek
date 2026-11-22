@@ -219,6 +219,13 @@ export interface Player {
   play(): Promise<void>;
   pause(): void;
   toggle(): void;
+  /**
+   * Start playing from a spot the user picked, whatever the current state (must be callable
+   * from a user gesture, like `play`). `charOffset` is an offset into that sentence's text;
+   * playback begins at the start of the word containing it (using real word timings when the
+   * engine has them, the length-weighted estimate otherwise). Omitted or 0 starts the sentence.
+   */
+  playFrom(sentenceIndex: number, charOffset?: number): Promise<void>;
   /** Jump to a sentence, keeping the play/pause state. */
   seek(sentenceIndex: number): void;
   next(): void;
