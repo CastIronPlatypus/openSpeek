@@ -68,8 +68,15 @@ export interface Sentence {
 export type Theme = 'system' | 'light' | 'dark';
 
 export interface Settings {
-  /** Voice name as listed by the engine; `null` means the model's default voice. */
-  voice: string | null;
+  /** Which speech engine reads aloud. */
+  engine: EngineId;
+  /** Chosen voice per engine; `null` means that engine's default voice. */
+  voices: Record<EngineId, string | null>;
+  /**
+   * Base URL of the openSpeek server (see docs/server-api.md) used by the server-side
+   * engines and for fetching web pages. Empty string means the page's own origin.
+   */
+  serverUrl: string;
   /** Playback rate, 0.5 – 3. Pitch is preserved. */
   rate: number;
   theme: Theme;
@@ -82,7 +89,9 @@ export interface Settings {
 }
 
 export const DEFAULT_SETTINGS: Settings = {
-  voice: null,
+  engine: 'phonon',
+  voices: { phonon: null, 'phonon-server': null, edge: null },
+  serverUrl: '',
   rate: 1,
   theme: 'system',
   fontSize: 19,
@@ -91,6 +100,48 @@ export const DEFAULT_SETTINGS: Settings = {
 };
 
 // ───────────────────────── Speech engine ─────────────────────────
+
+/**
+ * - `phonon`: Phonon running in this browser (WebAssembly). Private, works offline.
+ * - `phonon-server`: Phonon running on the openSpeek server; for devices too slow to run it.
+ * - `edge`: Microsoft Edge's online neural voices, reached through the openSpeek server
+ *   (browsers cannot call that service directly). Text is sent to Microsoft.
+ */
+export type EngineId = 'phonon' | 'phonon-server' | 'edge';
+
+export const ENGINE_IDS: readonly EngineId[] = ['phonon', 'phonon-server', 'edge'];
+
+/** Whether an engine needs the openSpeek server. */
+export const ENGINE_NEEDS_SERVER: Record<EngineId, boolean> = {
+  phonon: false,
+  'phonon-server': true,
+  edge: true,
+};
+
+/** What the server at `Settings.serverUrl` offers right now. */
+export interface ServerStatus {
+  reachable: boolean;
+  engines: { phonon: boolean; edge: boolean };
+  /** The server can fetch web pages for URL import (`GET /api/fetch?url=`). */
+  fetch: boolean;
+}
+
+/** Real word timing from an engine that reports it (Edge does, Phonon does not). */
+export interface WordTiming {
+  /** Seconds from the start of the audio. */
+  start: number;
+  end: number;
+  /** Offsets into the synthesised text. */
+  charStart: number;
+  charEnd: number;
+}
+
+export interface SynthResult {
+  /** Mono PCM at the engine's `sampleRate`. */
+  pcm: Float32Array;
+  /** Present only when the engine reports word timings. */
+  words?: WordTiming[];
+}
 
 export interface VoiceInfo {
   /** Unique name, passed back as `voice`. */
@@ -109,14 +160,19 @@ export interface ModelProgress {
 }
 
 export interface SpeechEngine {
-  /** Idempotent: downloads (first time) and initialises the Phonon model. */
+  readonly id: EngineId;
+  /**
+   * Idempotent. `phonon` downloads (first time) and initialises the model, reporting progress;
+   * server engines check the server is reachable and offers the engine, rejecting with a
+   * user-readable Error otherwise.
+   */
   load(onProgress?: (p: ModelProgress) => void): Promise<void>;
   readonly ready: boolean;
   readonly sampleRate: number;
-  /** Voices available for the loaded language. Works before `load` (fetches the catalog). */
+  /** Voices this engine offers. Works before `load`. Resolves to `[]` when they cannot be listed. */
   listVoices(): Promise<VoiceInfo[]>;
-  /** Synthesise one sentence to mono PCM. Rejects with an AbortError when `signal` aborts. */
-  synth(text: string, opts?: { voice?: string | null; signal?: AbortSignal }): Promise<Float32Array>;
+  /** Synthesise one sentence. Rejects with an AbortError when `signal` aborts. */
+  synth(text: string, opts?: { voice?: string | null; signal?: AbortSignal }): Promise<SynthResult>;
   dispose(): void;
 }
 
@@ -136,15 +192,17 @@ export interface PlayerState {
   /** Sentence being (or about to be) spoken; -1 when idle. */
   sentenceIndex: number;
   /**
-   * Estimated word being spoken, as offsets into the current sentence's text,
-   * or `null`. Phonon gives no word timings, so this is interpolated from audio
-   * position weighted by word length.
+   * Word being spoken, as offsets into the current sentence's text, or `null`.
+   * Uses the engine's real word timings when it reports them (Edge); otherwise
+   * (Phonon) it is interpolated from audio position weighted by word length.
    */
   word: { start: number; end: number } | null;
   /** Seconds elapsed / estimated total for the whole document at rate 1. */
   elapsed: number;
   duration: number;
   rate: number;
+  engine: EngineId;
+  /** Voice in use for the current engine. */
   voice: string | null;
   modelProgress: ModelProgress | null;
   error: string | null;
@@ -166,7 +224,12 @@ export interface Player {
   next(): void;
   prev(): void;
   setRate(rate: number): void;
-  /** Changing voice discards audio synthesised with the old one. */
+  /**
+   * Switch speech engine, keeping position and play/pause state. Discards cached audio;
+   * the voice resets to `voice` (default: that engine's default voice).
+   */
+  setEngine(engine: EngineId, voice?: string | null): void;
+  /** Voice for the current engine. Changing it discards audio synthesised with the old one. */
   setVoice(voice: string | null): void;
   /** Stop and clear the queue; status becomes `idle`. */
   stop(): void;
@@ -180,8 +243,10 @@ export interface Player {
 
 // ───────────────────────── Module entry points ─────────────────────────
 //
-// src/tts/index.ts      export function getEngine(): SpeechEngine            (singleton)
-// src/player/index.ts   export function getPlayer(): Player                  (singleton, uses getEngine)
+// src/tts/index.ts      export function getEngine(id: EngineId): SpeechEngine  (one singleton per id)
+//                       export function setServerUrl(url: string): void       ('' = same origin)
+//                       export function getServerStatus(): Promise<ServerStatus>  (never rejects; briefly cached)
+// src/player/index.ts   export function getPlayer(): Player                   (singleton, uses getEngine)
 //
 // src/ingest/index.ts   export function segment(blocks: Block[]): Sentence[]
 //                       export function importText(text: string, title?: string): DocumentDraft

@@ -12,7 +12,8 @@ const isolation = {
 export default defineConfig({
   base: './',
   plugins: [react()],
-  server: { headers: isolation },
+  // `npm run server` serves the API (Edge TTS, server-side Phonon, page fetch) on 8787.
+  server: { headers: isolation, proxy: { '/api': 'http://localhost:8787' } },
   preview: { headers: isolation },
   // phonon-tts locates its worker and wasm with `new URL(..., import.meta.url)`;
   // pre-bundling would break those relative paths in dev.
