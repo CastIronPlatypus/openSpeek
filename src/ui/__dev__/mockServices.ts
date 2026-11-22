@@ -164,6 +164,9 @@ class MockPlayer implements Player {
     this.position = 0;
     this.set({ sentenceIndex: i, word: null, elapsed: this.elapsedAt(i), ...(this.state.status === 'ended' ? { status: 'paused' } : {}) });
   }
+  timeAt(index: number) {
+    return this.lengths.slice(0, Math.max(0, index)).reduce((a, b) => a + b, 0);
+  }
   next() {
     this.seek(this.state.sentenceIndex + 1);
   }

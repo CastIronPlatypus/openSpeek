@@ -277,6 +277,12 @@ export class ReadAloudPlayer implements Player {
     this.fill();
   }
 
+  timeAt(sentenceIndex: number): number {
+    const prefix = this.prefixSums();
+    const i = Number.isFinite(sentenceIndex) ? Math.min(prefix.length - 1, Math.max(0, Math.floor(sentenceIndex))) : 0;
+    return prefix[i];
+  }
+
   next(): void {
     if (this.state.sentenceIndex < this.sentences.length - 1) this.seek(this.state.sentenceIndex + 1);
   }

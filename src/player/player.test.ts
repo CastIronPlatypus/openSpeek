@@ -224,6 +224,25 @@ describe('ReadAloudPlayer', () => {
     expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 0 });
   });
 
+  it('exposes the cumulative time estimate behind elapsed and duration', async () => {
+    const engine = new FakeEngine('phonon');
+    const { player } = setup({ engine });
+    expect(player.timeAt(0)).toBe(0);
+    player.setDocument(sentences('One two three.', 'Four.', 'Five six.'));
+    const { duration } = player.getState();
+    expect(player.timeAt(0)).toBe(0);
+    expect(player.timeAt(3)).toBeCloseTo(duration);
+    expect(player.timeAt(99)).toBeCloseTo(duration);
+    expect(player.timeAt(-4)).toBe(0);
+    expect(player.timeAt(2) - player.timeAt(1)).toBeGreaterThan(0);
+
+    await player.play();
+    engine.respond('One two three.', 3);
+    await flush();
+    expect(player.timeAt(1)).toBeCloseTo(3);
+    expect(player.timeAt(3)).toBeCloseTo(player.getState().duration);
+  });
+
   it('discards stale audio when seeking while buffering', async () => {
     const { player, engine, audio, urls } = setup();
     player.setDocument(sentences('A a.', 'B b.', 'C c.', 'D d.'));

@@ -63,6 +63,26 @@ export interface Sentence {
   text: string;
 }
 
+/**
+ * One entry of a document's table of contents, derived from blocks and sentences (never stored;
+ * see `outline` in src/ingest). Every section has at least one sentence, and sections are in
+ * reading order with strictly increasing `firstSentence`.
+ */
+export interface Section {
+  /** Heading text; `''` for the implicit untitled section before the first heading. */
+  title: string;
+  /** Source heading level 1-6; 0 for the implicit leading section. */
+  level: number;
+  /** Indent for display, 0-3: the shallowest level present is 0, and skipped levels indent one step. */
+  depth: number;
+  /** Index into `blocks` of the heading (of the first block, for the leading section). */
+  block: number;
+  firstSentence: number;
+  /** Inclusive. */
+  lastSentence: number;
+  sentenceCount: number;
+}
+
 // ───────────────────────── Settings ─────────────────────────
 
 export type Theme = 'system' | 'light' | 'dark';
@@ -228,6 +248,12 @@ export interface Player {
   playFrom(sentenceIndex: number, charOffset?: number): Promise<void>;
   /** Jump to a sentence, keeping the play/pause state. */
   seek(sentenceIndex: number): void;
+  /**
+   * Read-only: estimated seconds at rate 1 from the start of the document to the start of
+   * sentence `sentenceIndex` (0 … sentence count; the count gives `duration`). The same estimate
+   * behind `elapsed`/`duration`: it improves as audio is synthesised, which also changes `duration`.
+   */
+  timeAt(sentenceIndex: number): number;
   next(): void;
   prev(): void;
   setRate(rate: number): void;
@@ -256,6 +282,8 @@ export interface Player {
 // src/player/index.ts   export function getPlayer(): Player                   (singleton, uses getEngine)
 //
 // src/ingest/index.ts   export function segment(blocks: Block[]): Sentence[]
+//                       export function outline(blocks: Block[], sentences: Sentence[]): Section[]
+//                       export function sectionAt(sections: Section[], sentenceIndex: number): number  (-1 if none)
 //                       export function importText(text: string, title?: string): DocumentDraft
 //                       export function importFile(file: File): Promise<DocumentDraft>
 //                       export function importUrl(url: string, corsProxy?: string): Promise<DocumentDraft>
