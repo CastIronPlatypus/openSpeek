@@ -6,7 +6,6 @@ import { ReaderView } from './reader/ReaderView';
 import { loadServices } from './services';
 import { SettingsDialog } from './SettingsDialog';
 import { useHashRoute } from './useHashRoute';
-import './styles/base.css';
 
 const SERVER_CHECK_DELAY_MS = 500;
 
@@ -75,19 +74,20 @@ function useTheme() {
 function useServerMonitor() {
   const model = useApp();
   const [{ serverUrl }] = useSettings();
-  const first = useRef(true);
+  // Set once the startup check has completed (not when it is scheduled: StrictMode re-runs effects).
+  const checkedAtStartup = useRef(false);
 
   useEffect(() => {
     model.services.setServerUrl(serverUrl);
-    const isFirst = first.current;
-    first.current = false;
     const t = setTimeout(
       () => {
         void model.refreshServerStatus().then(() => {
-          if (isFirst) model.ensureUsableEngine();
+          if (checkedAtStartup.current) return;
+          checkedAtStartup.current = true;
+          model.ensureUsableEngine();
         });
       },
-      isFirst ? 0 : SERVER_CHECK_DELAY_MS,
+      checkedAtStartup.current ? SERVER_CHECK_DELAY_MS : 0,
     );
     return () => clearTimeout(t);
   }, [model, serverUrl]);

@@ -4,6 +4,7 @@
   --bg: #f6f1e7;
   --surface: #fffcf5;
   --surface-2: #efe8da;
+  --raised: #fffcf5;
   --border: #e0d6c3;
   --border-strong: #c9bca3;
   --text: #2b2620;
@@ -37,6 +38,7 @@
   --bg: #141618;
   --surface: #1c1f22;
   --surface-2: #25292d;
+  --raised: #3a4046;
   --border: #30353a;
   --border-strong: #464c53;
   --text: #e9e5dc;
@@ -62,6 +64,7 @@
     --bg: #141618;
     --surface: #1c1f22;
     --surface-2: #25292d;
+  --raised: #3a4046;
     --border: #30353a;
     --border-strong: #464c53;
     --text: #e9e5dc;
@@ -233,6 +236,12 @@ select {
   height: 36px;
   flex: none;
 }
+@media (pointer: coarse) {
+  .icon-btn--small {
+    min-width: var(--tap);
+    height: var(--tap);
+  }
+}
 
 /* ───────── Inputs ───────── */
 .input {
@@ -371,7 +380,7 @@ input[type='range'] {
   color: var(--muted);
 }
 .segmented-option input:checked + span {
-  background: var(--surface);
+  background: var(--raised);
   color: var(--text);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
 }
@@ -386,7 +395,7 @@ input[type='range'] {
   gap: 8px;
 }
 .chip {
-  min-height: 40px;
+  min-height: var(--tap);
   min-width: 56px;
   padding: 0 12px;
   border: 1px solid var(--border);
@@ -437,7 +446,7 @@ input[type='range'] {
   position: sticky;
   top: 0;
   z-index: 20;
-  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  background: color-mix(in srgb, var(--bg) 94%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border);
@@ -719,7 +728,12 @@ input[type='range'] {
 .engine-picker .field-label {
   margin-bottom: 4px;
 }
+.engine-options {
+  display: grid;
+  gap: 8px;
+}
 .engine-option {
+  position: relative;
   display: flex;
   align-items: flex-start;
   gap: 12px;
@@ -733,9 +747,13 @@ input[type='range'] {
   border-color: var(--accent);
   background: var(--accent-soft);
 }
+.engine-option:has(input:focus-visible) {
+  outline: 2.5px solid var(--focus);
+  outline-offset: 2px;
+}
 .engine-option[data-disabled] {
   cursor: not-allowed;
-  background: transparent;
+  border-style: dashed;
 }
 .engine-option[data-disabled] .engine-option-name {
   color: var(--muted);
@@ -756,15 +774,49 @@ input[type='range'] {
 .engine-option-name {
   font-weight: 600;
 }
+.engine-option-where {
+  color: var(--muted);
+  font-weight: 500;
+}
 .engine-option-reason {
   color: var(--danger);
 }
+.engine-hint {
+  margin-top: 2px;
+  color: var(--text);
+}
+
+.engine-picker--compact .engine-options {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
 .engine-picker--compact .engine-option {
-  padding: 10px 12px;
+  padding: 8px 10px;
+  min-height: 56px;
+  align-items: center;
+}
+.engine-picker--compact .engine-option input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.engine-picker--compact .engine-option-name {
+  font-size: 0.875rem;
+  line-height: 1.3;
+}
+.engine-picker--compact .engine-option-where {
+  display: block;
+  font-size: 0.8125rem;
+}
+.engine-detail {
+  padding: 0 2px;
 }
 
 .voice-panel {
-  width: 380px;
+  width: 400px;
+}
+.voice-panel.popover-panel {
+  max-height: min(80vh, 680px);
 }
 .voice-list {
   display: flex;
@@ -773,9 +825,7 @@ input[type='range'] {
   min-height: 0;
 }
 .voice-scroll {
-  display: grid;
-  gap: 2px;
-  max-height: 300px;
+  max-height: 320px;
   overflow: auto;
   overscroll-behavior: contain;
   margin: 0 -8px;
@@ -783,12 +833,8 @@ input[type='range'] {
 }
 @media (max-width: 599px) {
   .voice-scroll {
-    max-height: 38dvh;
+    max-height: 40dvh;
   }
-}
-.voice-group {
-  display: grid;
-  gap: 2px;
 }
 .voice-group-label {
   position: sticky;
@@ -807,12 +853,15 @@ input[type='range'] {
   align-items: flex-start;
   gap: 12px;
   min-height: var(--tap);
+  margin-bottom: 2px;
   padding: 10px 8px;
   border-radius: var(--radius-sm);
   cursor: pointer;
 }
-.voice-option:hover {
-  background: var(--surface-2);
+@media (hover: hover) {
+  .voice-option:hover {
+    background: var(--surface-2);
+  }
 }
 .voice-option:has(input:checked) {
   background: var(--accent-soft);
@@ -836,7 +885,7 @@ input[type='range'] {
   pointer-events: none;
 }
 .reader ~ .toast-region {
-  bottom: calc(180px + var(--safe-bottom));
+  bottom: calc(var(--player-bar-h, 150px) + 12px);
 }
 .toast {
   display: flex;

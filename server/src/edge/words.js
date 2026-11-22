@@ -49,7 +49,10 @@ export function foldForMatch(s) {
   return out;
 }
 
-const isWordChar = (/** @type {string | undefined} */ c) => !!c && /[\p{L}\p{N}\p{M}]/u.test(c);
+/** Scripts written without spaces between words: any character boundary is a word boundary. */
+const UNSPACED = /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Thai}\p{Script=Lao}\p{Script=Khmer}\p{Script=Myanmar}\p{Script=Tibetan}]/u;
+
+const isWordChar = (/** @type {string | undefined} */ c) => !!c && /[\p{L}\p{N}\p{M}]/u.test(c) && !UNSPACED.test(c);
 
 /**
  * @param {string} gap

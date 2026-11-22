@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, type CSSProperties } from 'react';
+import { useCallback, useEffect, useMemo, useRef, type CSSProperties, type RefObject } from 'react';
 import type { Sentence, StoredDocument } from '../../types';
 import { useApp, useSettings } from '../appModel';
 import { AppHeader, SettingsButton, ThemeToggle } from '../common/AppHeader';
@@ -81,6 +81,7 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
   const seek = useCallback((index: number) => player.seek(index), [player]);
 
   useProgressSaver(doc.id);
+  usePlayerBarHeight(barRef);
   useReaderShortcuts({
     toggle: () => player.toggle(),
     prev: () => player.prev(),
@@ -115,6 +116,21 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
       />
     </>
   );
+}
+
+/** Publishes the bar's height as `--player-bar-h` so floating UI (pill, toasts) can sit above it. */
+function usePlayerBarHeight(barRef: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    const el = barRef.current;
+    if (!el) return;
+    const style = document.documentElement.style;
+    const observer = new ResizeObserver(() => style.setProperty('--player-bar-h', `${el.offsetHeight}px`));
+    observer.observe(el);
+    return () => {
+      observer.disconnect();
+      style.removeProperty('--player-bar-h');
+    };
+  }, [barRef]);
 }
 
 function ShortcutsHelp() {

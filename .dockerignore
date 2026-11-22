@@ -1,0 +1,16 @@
+# Keep the build context small and free of local state.
+.git
+.gitignore
+.dockerignore
+Dockerfile
+docker-compose.yml
+**/node_modules
+dist
+coverage
+*.log
+.env
+.env.*
+.DS_Store
+.vscode
+.idea
+server/test

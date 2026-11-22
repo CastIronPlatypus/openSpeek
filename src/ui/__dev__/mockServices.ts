@@ -206,8 +206,7 @@ export function createMockServices(mode: string): Services {
   let settings: Settings = DEFAULT_SETTINGS;
   let nextId = 1;
 
-  const addDocument = async (draft: DocumentDraft) => {
-    await delay(150);
+  const store = (draft: DocumentDraft) => {
     const now = Date.now();
     const doc: StoredDocument = {
       ...draft,
@@ -221,13 +220,16 @@ export function createMockServices(mode: string): Services {
     docs.set(doc.id, doc);
     return doc;
   };
+  const addDocument = async (draft: DocumentDraft) => {
+    await delay(150);
+    return store(draft);
+  };
 
   if (opts.has('seed')) {
     const seed = (title: string, kind: SourceKind, progress: number, ageMs: number, repeat: number) => {
-      void addDocument({ ...importText(Array(repeat).fill(SAMPLE_TEXT).join('\n\n'), title), source: { kind } }).then((d) => {
-        d.updatedAt -= ageMs;
-        d.progress = Math.round(d.sentenceCount * progress);
-      });
+      const d = store({ ...importText(Array(repeat).fill(SAMPLE_TEXT).join('\n\n'), title), source: { kind } });
+      d.updatedAt -= ageMs;
+      d.progress = Math.round(d.sentenceCount * progress);
     };
     seed('A short welcome to listening', 'text', 0.4, 60_000, 1);
     seed('Quarterly field notes — coastal survey', 'pdf', 0.75, 3 * 86400_000, 12);

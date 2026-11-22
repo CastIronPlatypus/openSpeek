@@ -1,6 +1,6 @@
 import { createContext, useContext } from 'react';
 import { ENGINE_NEEDS_SERVER, type EngineId, type ServerStatus, type Settings } from '../types';
-import { engineLabel, isEngineAvailable } from './engines';
+import { ENGINE_INFO, isEngineAvailable } from './engines';
 import type { Services } from './services';
 import { createSettingsStore, type SettingsStore } from './settings';
 import { createStore, useStore, type Store } from './store';
@@ -69,7 +69,8 @@ export async function createAppModel(services: Services): Promise<AppModel> {
       applyEngine('phonon');
       if (!noticedFallback) {
         noticedFallback = true;
-        notice.set(`${engineLabel(desired)} needs the openSpeek server, which isn't available. Using Phonon on this device for now.`);
+        const { name, where } = ENGINE_INFO[desired];
+        notice.set(`${name} (${where}) needs the openSpeek server, which isn’t available right now. Using Phonon on this device instead.`);
       }
     },
     syncPlayer() {

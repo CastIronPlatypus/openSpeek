@@ -1,0 +1,156 @@
+.reader-title {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.reader-main {
+  --reader-font-size: 19px;
+  max-width: calc(70ch + 32px);
+  margin: 0 auto;
+  padding: 40px 16px calc(220px + var(--safe-bottom));
+  font-size: var(--reader-font-size);
+}
+
+.reader-message {
+  display: grid;
+  place-items: center;
+  min-height: 60dvh;
+  padding: 24px;
+  text-align: center;
+}
+.reader-message [role='alert'] {
+  display: grid;
+  gap: 16px;
+  justify-items: center;
+}
+
+.reader-text {
+  font-family: var(--font-read);
+  line-height: 1.75;
+  color: var(--text);
+  overflow-wrap: break-word;
+}
+.reader-text p {
+  margin: 0 0 1.1em;
+}
+.reader-heading {
+  margin: 1.6em 0 0.6em;
+  font-weight: 650;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+}
+.reader-heading:first-child {
+  margin-top: 0;
+}
+.reader-h1 {
+  font-size: 1.75em;
+}
+.reader-h2 {
+  font-size: 1.4em;
+}
+.reader-h3 {
+  font-size: 1.2em;
+}
+.reader-h4,
+.reader-h5,
+.reader-h6 {
+  font-size: 1.05em;
+}
+
+/* Sentences: clickable, softly highlighted while spoken. */
+.s {
+  cursor: pointer;
+  border-radius: 4px;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  transition: background-color 0.2s;
+}
+@media (hover: hover) {
+  .s:hover {
+    background: color-mix(in srgb, var(--sentence-bg) 45%, transparent);
+  }
+}
+.s--current,
+.s--current:hover {
+  background: var(--sentence-bg);
+  padding: 0.08em 0;
+}
+.w {
+  border-radius: 3px;
+  background: var(--word-bg);
+  color: var(--word-text);
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.follow-pill {
+  position: fixed;
+  left: 50%;
+  bottom: calc(var(--player-bar-h, 150px) + 16px);
+  z-index: 25;
+  translate: -50% 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: var(--tap);
+  padding: 0 18px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  font-weight: 580;
+  font-size: 0.9375rem;
+  white-space: nowrap;
+  cursor: pointer;
+  animation: pop-in 0.2s var(--ease);
+}
+.follow-pill svg {
+  color: var(--accent);
+}
+
+.shortcuts {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+.shortcut {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.shortcut dt {
+  display: flex;
+  gap: 4px;
+}
+.shortcut dd {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9375rem;
+}
+kbd {
+  display: inline-grid;
+  place-items: center;
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 6px;
+  background: var(--surface-2);
+  font: 600 0.8125rem/1 var(--font-ui);
+}
+
+@media (max-width: 599px) {
+  .reader-main {
+    padding-top: 24px;
+  }
+  .reader-text {
+    line-height: 1.7;
+  }
+}

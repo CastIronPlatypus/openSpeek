@@ -3,9 +3,13 @@
  *  - only http/https, only ports 80/443, no credentials in the URL;
  *  - the host name is resolved here and every address checked (see ssrf.js); a host with any
  *    non-public address is refused;
- *  - the socket is opened to the vetted address itself (directly, or as a CONNECT to that IP
- *    through HTTPS_PROXY), so nothing re-resolves the name between check and use; TLS is still
- *    verified against the host name;
+ *  - without a proxy, the socket is opened to the vetted address itself, so nothing re-resolves
+ *    the name between check and use; TLS is still verified against the host name;
+ *  - with HTTPS_PROXY set, the tunnel is opened with CONNECT <host name>:<port> by default
+ *    (many egress proxies only accept names), after the same local vetting. The proxy then
+ *    resolves the name again, so a DNS-rebinding race remains on this path unless the proxy
+ *    itself blocks private destinations; set FETCH_PROXY_PIN_IP=1 to CONNECT to the vetted IP
+ *    instead when your proxy accepts that;
  *  - redirects are followed manually (max 5), each one re-validated;
  *  - 10 s overall timeout, 5 MB cap (after decompression), HTML content types only.
  */
@@ -29,9 +33,10 @@ const USER_AGENT =
  * Parse and check a URL string. Throws HttpError(400) when unacceptable.
  * @param {string} raw
  * @param {URL} [base]
+ * @param {Set<number>} [allowedPorts]  Tests only.
  * @returns {URL}
  */
-export function validateUrl(raw, base) {
+export function validateUrl(raw, base, allowedPorts = ALLOWED_PORTS) {
   let u;
   try {
     u = new URL(raw, base);
@@ -41,7 +46,7 @@ export function validateUrl(raw, base) {
   if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new HttpError(400, 'Only http and https URLs can be fetched');
   if (u.username || u.password) throw new HttpError(400, 'URLs with credentials are not allowed');
   const port = Number(u.port) || (u.protocol === 'https:' ? 443 : 80);
-  if (!ALLOWED_PORTS.has(port)) throw new HttpError(400, 'Only the standard ports 80 and 443 are allowed');
+  if (!allowedPorts.has(port)) throw new HttpError(400, 'Only the standard ports 80 and 443 are allowed');
   if (!u.hostname) throw new HttpError(400, 'Invalid URL');
   return u;
 }
@@ -51,15 +56,16 @@ export function validateUrl(raw, base) {
  * is not public.
  * @param {URL} u
  * @param {(host: string) => Promise<Array<{ address: string, family: number }>>} [lookup]
+ * @param {(ip: string) => boolean} [isAllowed]  Tests only.
  * @returns {Promise<string>}
  */
-export async function resolvePublicAddress(u, lookup = defaultLookup) {
+export async function resolvePublicAddress(u, lookup = defaultLookup, isAllowed = (/** @type {string} */ ip) => blockedReason(ip) === null) {
   const host = u.hostname.replace(/^\[|\]$/g, '');
   /** @type {string[]} */
   let addrs;
   if (net.isIP(host)) addrs = [host];
   else {
-    if (host.toLowerCase() === 'localhost' || host.toLowerCase().endsWith('.localhost')) {
+    if (/^localhost\.?$|\.localhost\.?$/i.test(host)) {
       throw new HttpError(403, 'Refusing to fetch a local address');
     }
     try {
@@ -70,7 +76,7 @@ export async function resolvePublicAddress(u, lookup = defaultLookup) {
   }
   if (!addrs.length) throw new HttpError(502, 'Could not resolve the host name');
   for (const a of addrs) {
-    if (blockedReason(a) !== null) throw new HttpError(403, 'Refusing to fetch a private or local address');
+    if (!isAllowed(a)) throw new HttpError(403, 'Refusing to fetch a private or local address');
   }
   return addrs[0];
 }
@@ -116,7 +122,7 @@ export function decodeBody(body, charset) {
  * One HTTP exchange against a vetted address. Resolves with status, headers and (for 2xx) body.
  * @param {URL} u
  * @param {string} address
- * @param {{ proxyUrl: string, signal: AbortSignal, deadline: number }} ctx
+ * @param {{ proxyUrl: string, pinIp: boolean, signal: AbortSignal, deadline: number }} ctx
  * @returns {Promise<{ status: number, headers: import('node:http').IncomingHttpHeaders, body: Buffer | null }>}
  */
 async function exchange(u, address, ctx) {
@@ -124,7 +130,8 @@ async function exchange(u, address, ctx) {
   const port = Number(u.port) || (secure ? 443 : 80);
   const host = u.hostname.replace(/^\[|\]$/g, '');
   const socket = await openSocket({
-    address,
+    // Direct connections always go to the vetted IP; through a proxy, by name unless pinned.
+    address: ctx.proxyUrl && !ctx.pinIp ? host : address,
     port,
     secure,
     servername: host,
@@ -208,7 +215,10 @@ async function exchange(u, address, ctx) {
 
 /**
  * @typedef {object} FetchOptions
- * @property {string} [proxyUrl]
+ * @property {string} [proxyUrl]   HTTP proxy for outbound connections ('' = direct).
+ * @property {boolean} [pinIp]      Through a proxy, CONNECT to the vetted IP instead of the name.
+ * @property {(ip: string) => boolean} [isAllowed]  Tests only: override the address policy.
+ * @property {Set<number>} [allowedPorts]           Tests only: override the port policy.
  * @property {(host: string) => Promise<Array<{ address: string, family: number }>>} [lookup]
  */
 
@@ -223,13 +233,13 @@ export async function fetchPage(rawUrl, opts = {}) {
   const ac = new AbortController();
   const timer = setTimeout(() => ac.abort(), FETCH_TIMEOUT_MS);
   try {
-    let u = validateUrl(rawUrl);
+    let u = validateUrl(rawUrl, undefined, opts.allowedPorts);
     for (let hop = 0; ; hop++) {
-      const address = await resolvePublicAddress(u, opts.lookup);
+      const address = await resolvePublicAddress(u, opts.lookup, opts.isAllowed);
       if (ac.signal.aborted) throw new HttpError(504, 'Fetching the page timed out');
       let r;
       try {
-        r = await exchange(u, address, { proxyUrl: opts.proxyUrl ?? '', signal: ac.signal, deadline });
+        r = await exchange(u, address, { proxyUrl: opts.proxyUrl ?? '', pinIp: opts.pinIp ?? false, signal: ac.signal, deadline });
       } catch (err) {
         if (err instanceof HttpError) throw err;
         if (ac.signal.aborted) throw new HttpError(504, 'Fetching the page timed out');
@@ -239,7 +249,7 @@ export async function fetchPage(rawUrl, opts = {}) {
         const loc = r.headers.location;
         if (!loc) throw new HttpError(502, 'Redirect without a location');
         if (hop >= FETCH_MAX_REDIRECTS) throw new HttpError(502, 'Too many redirects');
-        u = validateUrl(loc, u);
+        u = validateUrl(loc, u, opts.allowedPorts);
         continue;
       }
       if (!r.body) throw new HttpError(502, `The site answered ${r.status}`);

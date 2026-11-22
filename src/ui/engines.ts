@@ -42,6 +42,14 @@ export function unavailableReason(id: EngineId, status: ServerStatus | null): st
   return 'The openSpeek server does not offer this engine';
 }
 
+/** One line about the server engines when any of them is unavailable, else `null`. */
+export function serverEnginesHint(status: ServerStatus | null): string | null {
+  if (!status) return 'Checking the openSpeek server…';
+  if (!status.reachable) return 'The server engines need the openSpeek server — see Settings.';
+  if (!status.engines.phonon || !status.engines.edge) return 'Your openSpeek server does not offer every engine.';
+  return null;
+}
+
 /** URL import proxy prefix for the server's page fetcher; `''` serverUrl means same origin. */
 export function serverFetchPrefix(serverUrl: string): string {
   return `${serverUrl.trim().replace(/\/+$/, '')}/api/fetch?url=`;

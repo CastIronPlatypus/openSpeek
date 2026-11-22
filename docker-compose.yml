@@ -1,0 +1,38 @@
+# openSpeek with server-side Phonon.
+#   docker compose up --build
+# then open http://localhost:8787
+#
+# The Phonon container downloads its model and voices from Hugging Face on first start
+# (cached in the phonon-cache volume) and has no authentication, so it is not published on
+# the host: only the openspeek service talks to it, over the compose network.
+services:
+  openspeek:
+    build: .
+    image: openspeek
+    ports:
+      - "8787:8787"
+    environment:
+      PORT: "8787"
+      PHONON_URL: http://phonon:8880
+      CORS_ORIGIN: "*"
+      # Edge TTS sends text to Microsoft; set EDGE_TTS: "0" to turn it off.
+      EDGE_TTS: "1"
+    depends_on:
+      - phonon
+    restart: unless-stopped
+
+  phonon:
+    image: ghcr.io/gradium-ai/ptts-openai-server:latest
+    environment:
+      PTTS_LANG: en
+      PTTS_QUANT: q8
+      PTTS_MAX_CONCURRENT_REQUESTS: "1"
+      HF_HOME: /home/phonon/.cache/huggingface
+      # Needed only for gated models such as hf://gradium/phonon-40m-fr (with PTTS_MODEL).
+      HF_TOKEN:
+    volumes:
+      - phonon-cache:/home/phonon/.cache/huggingface
+    restart: unless-stopped
+
+volumes:
+  phonon-cache:

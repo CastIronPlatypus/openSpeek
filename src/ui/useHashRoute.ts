@@ -14,7 +14,6 @@ const subscribe = (listener: () => void) => {
 
 export function useHashRoute(): Route {
   const hash = useSyncExternalStore(subscribe, () => location.hash);
-  // `parse` is cheap and the result is only compared field by field.
   return parse(hash);
 }
 

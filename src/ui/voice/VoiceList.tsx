@@ -23,11 +23,11 @@ function localeLabel(locale: string | undefined): string {
   }
 }
 
-/** "en-US-AriaNeural" reads better as "Aria". */
+/** "en-US-AriaNeural" reads better as "Aria", "en-US-AndrewMultilingualNeural" as "Andrew (multilingual)". */
 function displayName(v: VoiceInfo): string {
   let name = v.name;
   if (v.locale && name.startsWith(`${v.locale}-`)) name = name.slice(v.locale.length + 1);
-  return name.replace(/Neural$/, '') || v.name;
+  return name.replace(/Neural$/, '').replace(/(\p{Ll})Multilingual$/u, '$1 (multilingual)') || v.name;
 }
 
 function groupVoices(voices: VoiceInfo[]): Group[] {

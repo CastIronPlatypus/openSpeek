@@ -1,5 +1,7 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+// Base styles first, so component stylesheets imported by App can override them.
+import './ui/styles/base.css';
 import App from './ui/App';
 
 // index.html belongs to the integrator, so the icon and manifest links are added here.
@@ -11,7 +13,7 @@ function addHeadLink(rel: string, href: string, type?: string) {
   document.head.append(link);
 }
 addHeadLink('icon', 'favicon.svg', 'image/svg+xml');
-addHeadLink('apple-touch-icon', 'icon-192.png');
+addHeadLink('apple-touch-icon', 'icon-maskable-512.png');
 addHeadLink('manifest', 'manifest.webmanifest');
 
 createRoot(document.getElementById('root')!).render(

@@ -46,6 +46,8 @@ function bool(v, fallback) {
  * @property {number} phononConcurrency
  * @property {number} phononTimeoutMs
  * @property {boolean} fetchEnabled
+ * @property {boolean} fetchUseProxy  Send page fetches through `httpsProxy` when set.
+ * @property {boolean} fetchProxyPinIp Through the proxy, CONNECT to the vetted IP, not the name.
  * @property {string} httpsProxy     Outbound proxy for Edge and page fetches ('' = direct).
  * @property {string} noProxy
  */
@@ -75,6 +77,8 @@ export function loadConfig(env = process.env) {
     phononConcurrency: int(env.PHONON_CONCURRENCY, 1, 1, 32),
     phononTimeoutMs: int(env.PHONON_TIMEOUT_MS, 120000, 1000),
     fetchEnabled: bool(env.FETCH, true),
+    fetchUseProxy: bool(env.FETCH_USE_PROXY, true),
+    fetchProxyPinIp: bool(env.FETCH_PROXY_PIN_IP, false),
     httpsProxy: env.HTTPS_PROXY || env.https_proxy || '',
     noProxy: env.NO_PROXY || env.no_proxy || '',
   };
