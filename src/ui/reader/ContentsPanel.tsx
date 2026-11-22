@@ -101,6 +101,7 @@ export function ContentsPanel({ hub, mode, autoFocus, onClose, onSelect, onPrev,
         ref={panelRef}
         className={panelClass}
         data-mode={mode}
+        data-filterable={sections.length > FILTER_MIN_SECTIONS || undefined}
         role={overlay ? 'dialog' : 'region'}
         aria-modal={overlay || undefined}
         aria-labelledby={titleId}

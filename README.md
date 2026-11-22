@@ -17,6 +17,7 @@ The server is optional. Without it the app is a static site using in-browser Pho
 
 - Paste text, rich text or a link to a web page (Ctrl/⌘ V anywhere on the library, or the Paste button), or import PDF, EPUB, DOCX, Markdown and HTML files.
 - Sentence and word highlighting, tap or click any word to start listening from there, auto-scroll.
+- Contents: chapters and sections with listening times and progress (a bottom sheet on phones, a panel beside the text on wide screens), the current section always shown, previous/next section (⇧← / ⇧→), section ticks on the seek bar. EPUB tables of contents and PDF bookmarks supply headings where the text lacks them.
 - Speed 0.5×–3× with pitch preserved, voice picker, keyboard shortcuts, lock-screen controls.
 - Library stored in the browser (IndexedDB) with resume position.
 - Export a document as a WAV file.

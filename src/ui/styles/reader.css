@@ -161,6 +161,7 @@ kbd {
 }
 /* Docked contents: the column keeps its width and centres in the space beside the panel. */
 .reader-main--beside-contents {
+  max-width: min(calc(70ch + 32px), calc(100% - var(--contents-w) - 48px));
   margin-left: calc(var(--contents-w) + max(24px, (100% - var(--contents-w) - 70ch - 32px) / 2));
   margin-right: auto;
 }
@@ -202,9 +203,12 @@ kbd {
   background: var(--backdrop);
   animation: fade-in 0.2s;
 }
-/* The sheet is the popover's bottom sheet, taller. */
+/* The sheet is the popover's bottom sheet, taller; with a filter it keeps its height while filtering. */
 .popover-panel.contents-panel {
   max-height: 85dvh;
+}
+.popover-panel.contents-panel[data-filterable] {
+  height: 85dvh;
 }
 @keyframes drawer-in {
   from {
