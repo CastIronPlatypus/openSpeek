@@ -1,7 +1,7 @@
 import type { Block, Sentence } from '../types';
 
 /** Sentences longer than this are split at clause boundaries for the TTS engine. */
-export const MAX_SENTENCE_LENGTH = 350;
+export const MAX_SENTENCE_LENGTH = 3500;
 /** Don't produce clause pieces shorter than this when splitting long sentences. */
 const MIN_PIECE_LENGTH = 60;
 

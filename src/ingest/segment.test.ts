@@ -71,7 +71,7 @@ describe('segment', () => {
 
   it('splits very long sentences at clause boundaries, never mid-word', () => {
     const clause = 'the quick brown fox jumps over the lazy dog while the cat watches';
-    const text = `${Array.from({ length: 12 }, () => clause).join('; ')}.`;
+    const text = `${Array.from({ length: 120 }, () => clause).join('; ')}.`;
     const blocks = [para(text)];
     const sentences = segment(blocks);
     expect(sentences.length).toBeGreaterThan(1);
@@ -84,7 +84,7 @@ describe('segment', () => {
   });
 
   it('falls back to word boundaries when a long sentence has no punctuation', () => {
-    const text = Array.from({ length: 120 }, (_, i) => `word${i}`).join(' ');
+    const text = Array.from({ length: 1200 }, (_, i) => `word${i}`).join(' ');
     const blocks = [para(text)];
     const sentences = segment(blocks);
     expectInvariants(blocks, sentences);
@@ -96,7 +96,7 @@ describe('segment', () => {
   });
 
   it('splits at commas and dashes when nothing stronger exists', () => {
-    const text = `${Array.from({ length: 10 }, (_, i) => `item number ${i} is here and also there`).join(', ')} — and finally the end of it all.`;
+    const text = `${Array.from({ length: 100 }, (_, i) => `item number ${i} is here and also there`).join(', ')} — and finally the end of it all.`;
     const sentences = segment([para(text)]);
     expect(sentences.length).toBeGreaterThan(1);
     expect(sentences[0].text.endsWith(',')).toBe(true);

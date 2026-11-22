@@ -64,7 +64,7 @@ export function loadConfig(env = process.env) {
     corsOrigin: env.CORS_ORIGIN || '*',
     trustProxy: bool(env.TRUST_PROXY, false),
     bodyLimit: int(env.BODY_LIMIT, 16 * 1024, 1024, 1024 * 1024),
-    maxTextLength: 2000,
+    maxTextLength: 4000,
     ttsRatePerMinute: int(env.TTS_RATE_LIMIT, 120, 0),
     fetchRatePerMinute: int(env.FETCH_RATE_LIMIT, 30, 0),
     edgeEnabled: bool(env.EDGE_TTS, true),

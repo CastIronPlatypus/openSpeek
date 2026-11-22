@@ -28,7 +28,7 @@ origin. Errors are JSON `{ "error": "human readable message" }` with a 4xx/5xx s
 ## `POST /api/tts`
 
 Request (JSON): `{ "engine": "edge" | "phonon", "text": "One sentence.", "voice": "en-US-AriaNeural" }`
-— `voice` optional (engine default). `text` is at most 2000 characters.
+— `voice` optional (engine default). `text` is at most 4000 characters.
 
 Response (JSON):
 

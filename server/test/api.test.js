@@ -82,10 +82,10 @@ test('tts validation errors', async () => {
   await expectError(await tts({ engine: 'edge' }), 400, /text/);
   await expectError(await tts({ engine: 'edge', text: '   ' }), 400, /text/);
   await expectError(await tts({ engine: 'edge', text: 42 }), 400, /text/);
-  await expectError(await tts({ engine: 'edge', text: 'x'.repeat(2001) }), 400, /2000/);
+  await expectError(await tts({ engine: 'edge', text: 'x'.repeat(4001) }), 400, /4000/);
   await expectError(await tts({ engine: 'edge', text: 'hi', voice: 7 }), 400, /voice/);
   await expectError(await tts({ engine: 'edge', text: 'x'.repeat(20000) }), 413, /large/);
-  assert.equal((await tts({ engine: 'edge', text: 'x'.repeat(2000) })).status, 200);
+  assert.equal((await tts({ engine: 'edge', text: 'x'.repeat(4000) })).status, 200);
 });
 
 test('wrong method and unknown routes', async () => {
