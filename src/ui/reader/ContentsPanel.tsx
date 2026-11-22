@@ -186,7 +186,7 @@ interface SectionRowProps {
 const SectionRow = memo(function SectionRow({ hub, index, section, duration, onSelect }: SectionRowProps) {
   const status = useSectionStatus(hub, index);
   return (
-    <li className="contents-item" data-status={status} style={{ '--depth': section.depth } as CSSProperties}>
+    <li className="contents-item" data-status={status} data-depth={section.depth} style={{ '--depth': section.depth } as CSSProperties}>
       <button
         type="button"
         className="contents-row"

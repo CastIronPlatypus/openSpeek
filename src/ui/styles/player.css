@@ -326,3 +326,75 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
 }
+
+/* Current section (opens the contents) */
+.player-section {
+  display: flex;
+  justify-content: center;
+  min-width: 0;
+}
+.section-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 100%;
+  min-height: var(--tap);
+  padding: 0 10px 0 12px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text);
+  font-size: 0.875rem;
+  font-weight: 580;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+.section-btn:hover,
+.section-btn[aria-expanded='true'] {
+  background: var(--surface-2);
+}
+.section-btn > svg {
+  flex: none;
+  color: var(--accent);
+}
+.section-btn-title {
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+.section-btn-chevron {
+  flex: none;
+  display: grid;
+  color: var(--muted);
+  transition: rotate 0.2s var(--ease);
+}
+.section-btn[aria-expanded='true'] .section-btn-chevron {
+  rotate: 180deg;
+}
+
+/* Section ticks: behind the range input, peeking out above and below its track. */
+.scrubber-track {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-width: 0;
+}
+.scrubber-track .scrubber-input {
+  position: relative;
+}
+.scrubber-marks {
+  position: absolute;
+  inset: 0 8px; /* the thumb's centre travels from 8px to width − 8px */
+  pointer-events: none;
+}
+.scrubber-mark {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--at) * 100%);
+  width: 2px;
+  height: 13px;
+  margin: -6.5px 0 0 -1px;
+  border-radius: 1px;
+  background: var(--border-strong);
+}
