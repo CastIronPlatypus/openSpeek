@@ -4,7 +4,7 @@ import type { ImportJob } from './useImports';
 
 type Tab = 'text' | 'file';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-  { id: 'text', label: 'Type or paste', icon: <TextIcon size={18} /> },
+  { id: 'text', label: 'Text or link', icon: <TextIcon size={18} /> },
   { id: 'file', label: 'Upload file', icon: <UploadIcon size={18} /> },
 ];
 
