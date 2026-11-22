@@ -50,6 +50,28 @@ export function pasteEventData(data: DataTransfer): PasteData {
   };
 }
 
+const isEmpty = (data: PasteData) => !data.files?.length && !data.html?.trim() && !data.text?.trim();
+
+/** First address in a `text/uri-list` body (comment lines start with `#`). */
+function firstUri(list: string): string {
+  return list.split(/\r?\n/).map((line) => line.trim()).find((line) => line && !line.startsWith('#')) ?? '';
+}
+
+/**
+ * Collects what the clipboard items hold. A link copied from Safari's address bar or share
+ * sheet arrives as `text/uri-list` with no `text/plain`, so that type counts as text too.
+ */
+async function readItems(items: ClipboardItem[]): Promise<PasteData> {
+  const data: PasteData = {};
+  const textOf = async (item: ClipboardItem, type: string) => (await item.getType(type)).text();
+  for (const item of items) {
+    if (!data.html && item.types.includes('text/html')) data.html = await textOf(item, 'text/html');
+    if (!data.text && item.types.includes('text/plain')) data.text = await textOf(item, 'text/plain');
+    if (!data.text?.trim() && item.types.includes('text/uri-list')) data.text = firstUri(await textOf(item, 'text/uri-list'));
+  }
+  return data;
+}
+
 export type ClipboardReadResult = { ok: true; data: PasteData } | { ok: false };
 
 /**
@@ -61,11 +83,11 @@ export async function readClipboard(clipboard: Clipboard | undefined = navigator
   if (!clipboard) return { ok: false };
   if (typeof clipboard.read === 'function') {
     try {
-      const items = await clipboard.read();
-      const data: PasteData = {};
-      for (const item of items) {
-        if (!data.html && item.types.includes('text/html')) data.html = await (await item.getType('text/html')).text();
-        if (!data.text && item.types.includes('text/plain')) data.text = await (await item.getType('text/plain')).text();
+      const data = await readItems(await clipboard.read());
+      // Nothing recognised: `readText` may still see what `read` did not expose.
+      if (isEmpty(data) && typeof clipboard.readText === 'function') {
+        const text = await clipboard.readText().catch(() => '');
+        if (text.trim()) data.text = text;
       }
       return { ok: true, data };
     } catch (err) {

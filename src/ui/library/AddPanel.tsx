@@ -125,7 +125,7 @@ function TextForm({ onSubmit }: { onSubmit: AddPanelProps['onText'] }) {
       />
       <textarea
         className="input textarea"
-        placeholder="Paste or type the text you want to hear…"
+        placeholder="Paste or type text, or a link to a web page…"
         aria-label="Text to listen to"
         rows={5}
         value={text}

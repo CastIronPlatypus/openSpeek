@@ -62,6 +62,26 @@ describe('readClipboard', () => {
     expect(await readClipboard(clipboard)).toEqual({ ok: true, data: { html: '<h1>T</h1>', text: 'T' } });
   });
 
+  it('reads a link copied from Safari, which has a URL type and no plain text', async () => {
+    const url = 'https://example.com/article';
+    const safari = { read: async () => [item({ 'text/uri-list': `# copied\r\n${url}\r\n` })] } as unknown as Clipboard;
+    const result = await readClipboard(safari);
+    expect(result).toEqual({ ok: true, data: { text: url } });
+    expect(result.ok && classifyPaste(result.data)).toEqual({ kind: 'url', url });
+  });
+
+  it('keeps plain text when a URL type comes with it', async () => {
+    const both = { read: async () => [item({ 'text/uri-list': 'https://a.example/', 'text/plain': 'Some words' })] } as unknown as Clipboard;
+    expect(await readClipboard(both)).toEqual({ ok: true, data: { text: 'Some words' } });
+  });
+
+  it('tries readText() when read() exposes nothing it recognises', async () => {
+    const odd = { read: async () => [item({ 'image/png': 'x' })], readText: async () => 'https://example.com/x' } as unknown as Clipboard;
+    expect(await readClipboard(odd)).toEqual({ ok: true, data: { text: 'https://example.com/x' } });
+    const empty = { read: async () => [], readText: () => Promise.reject(new Error('no')) } as unknown as Clipboard;
+    expect(await readClipboard(empty)).toEqual({ ok: true, data: {} });
+  });
+
   it('falls back to readText() when read() is missing or fails for another reason', async () => {
     const readText = async () => 'plain';
     expect(await readClipboard({ readText } as unknown as Clipboard)).toEqual({ ok: true, data: { text: 'plain' } });

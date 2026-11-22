@@ -7,7 +7,7 @@ import { serverFetchPrefix } from '../engines';
 import { openReader } from '../useHashRoute';
 import { AddPanel } from './AddPanel';
 import { DocumentList } from './DocumentList';
-import { classifyPaste, readClipboard, type PasteData } from './paste';
+import { classifyPaste, readClipboard, singleUrl, type PasteData } from './paste';
 import { SAMPLE_TEXT, SAMPLE_TITLE } from './sample';
 import { useDocuments } from './useDocuments';
 import { useImports } from './useImports';
@@ -38,9 +38,6 @@ export function LibraryView({ onOpenSettings }: { onOpenSettings: () => void }) 
   );
   const dragging = useWindowFileDrop(importFiles);
 
-  const importText = (text: string, title: string) =>
-    run(title || 'pasted text', () => ingest.importText(text, title || undefined), true);
-
   const importUrl = (url: string) =>
     run(url, async () => {
       const { corsProxy, serverUrl } = model.settings.get();
@@ -48,6 +45,13 @@ export function LibraryView({ onOpenSettings }: { onOpenSettings: () => void }) 
       if (!proxy && (await model.refreshServerStatus()).fetch) proxy = serverFetchPrefix(serverUrl);
       return ingest.importUrl(url, proxy);
     }, true);
+
+  // A lone link in the text box means the page it points to, as it does for the Paste button.
+  const importText = (text: string, title: string) => {
+    const url = singleUrl(text);
+    if (url) return importUrl(url);
+    return run(title || 'pasted text', () => ingest.importText(text, title || undefined), true);
+  };
 
   const [pasteNotice, setPasteNotice] = useState<string | null>(null);
 
