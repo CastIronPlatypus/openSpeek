@@ -6,6 +6,6 @@ Reading silently is a younger skill than we tend to think. For centuries, reader
 
 Listening also frees the hands and the eyes. A long report can keep you company on a walk. A chapter can fill the time it takes to cook dinner. Tired eyes can rest while the argument of an essay keeps moving forward, one clear sentence at a time.
 
-The best way to listen is to follow along now and then. When the highlighted words drift ahead of your attention, tap any sentence to jump back. Slow the voice down for dense passages and speed it up for familiar ones. There is no wrong pace, only the one that keeps you listening.
+The best way to listen is to follow along now and then. When the highlighted words drift ahead of your attention, tap any word to pick up from there. Slow the voice down for dense passages and speed it up for familiar ones. There is no wrong pace, only the one that keeps you listening.
 
 Unless you choose otherwise, everything you hear in openSpeek is spoken on your own device. Add a document of your own when you are ready, and let it be read to you.`;

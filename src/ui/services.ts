@@ -26,6 +26,8 @@ export interface Ingest {
   segment(blocks: Block[]): Sentence[];
   importText(text: string, title?: string): DocumentDraft;
   importFile(file: File): Promise<DocumentDraft>;
+  /** Rich text (e.g. from the clipboard), with the same content as plain text for fallback. */
+  importHtmlFragment(html: string, plainFallback?: string): DocumentDraft;
   importUrl(url: string, corsProxy?: string): Promise<DocumentDraft>;
   acceptedFileTypes: string;
 }
@@ -81,6 +83,7 @@ export async function loadServices(): Promise<Services> {
       segment: ingest.segment,
       importText: ingest.importText,
       importFile: ingest.importFile,
+      importHtmlFragment: ingest.importHtmlFragment,
       importUrl: ingest.importUrl,
       acceptedFileTypes: ingest.ACCEPTED_FILE_TYPES,
     },

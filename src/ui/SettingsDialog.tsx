@@ -82,7 +82,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
       <section className="settings-section">
         <h3>Server</h3>
         <p className="muted small">
-          Optional. An openSpeek server adds the server-side engines and can fetch web pages that block direct import.
+          Optional. An openSpeek server adds the server-side engines and can fetch web pages for pasted links when a site blocks direct reading.
         </p>
         <div className="field">
           <label className="field-label" htmlFor={ids.server}>
@@ -106,7 +106,7 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
         </div>
         <div className="field">
           <label className="field-label" htmlFor={ids.proxy}>
-            CORS proxy for web pages
+            CORS proxy for pasted links
           </label>
           <input
             id={ids.proxy}
@@ -120,8 +120,8 @@ export function SettingsDialog({ open, onClose }: { open: boolean; onClose: () =
             onChange={(e) => update({ corsProxy: e.target.value.trim() })}
           />
           <p className="muted small">
-            Many sites block pages from being read by other sites. The page URL is appended to this prefix. Leave empty to
-            use the server above when it can fetch pages.
+            When you paste a link, many sites block their page from being read by other sites. The page URL is appended
+            to this prefix. Leave empty to use the server above when it can fetch pages.
           </p>
         </div>
       </section>

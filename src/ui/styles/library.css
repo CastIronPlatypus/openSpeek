@@ -22,6 +22,60 @@
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+.paste-row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border-radius: var(--radius);
+  background: var(--accent-soft);
+}
+.paste-btn {
+  flex: none;
+  min-width: 120px;
+  font-size: 1rem;
+}
+.paste-hint {
+  margin: 0;
+  color: var(--text);
+  line-height: 1.5;
+}
+.paste-hint kbd {
+  display: inline-block;
+  min-width: 22px;
+  height: auto;
+  padding: 0 5px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 5px;
+  background: var(--surface);
+  font: inherit;
+  font-size: 0.75rem;
+  line-height: 1.4;
+  text-align: center;
+}
+.only-touch {
+  display: none;
+}
+@media (hover: none) and (pointer: coarse) {
+  .only-touch {
+    display: inline;
+  }
+}
+.paste-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+  padding: 6px 6px 6px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  font-size: 0.9375rem;
+}
+.paste-notice span {
+  flex: 1;
+  min-width: 0;
+}
 .tabs {
   display: flex;
   gap: 4px;
@@ -64,14 +118,6 @@
 .add-actions {
   display: flex;
   justify-content: flex-end;
-}
-.url-row {
-  display: flex;
-  gap: 10px;
-}
-.url-row .input {
-  flex: 1;
-  min-width: 0;
 }
 .dropzone {
   display: grid;
@@ -304,11 +350,13 @@
   .tabs {
     border-radius: 18px;
   }
-  .url-row {
+  .paste-row {
     flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 12px;
   }
-  .add-actions .btn,
-  .url-row .btn {
+  .add-actions .btn {
     width: 100%;
   }
   .doc {

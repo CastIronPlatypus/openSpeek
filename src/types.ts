@@ -84,7 +84,7 @@ export interface Settings {
   fontSize: number;
   /** Scroll the reader to keep the spoken sentence in view. */
   autoScroll: boolean;
-  /** Optional CORS proxy prefix for URL import, e.g. `https://example.com/?url=`. */
+  /** Optional CORS proxy prefix for importing pasted links, e.g. `https://example.com/?url=`. */
   corsProxy: string;
 }
 
@@ -122,7 +122,7 @@ export const ENGINE_NEEDS_SERVER: Record<EngineId, boolean> = {
 export interface ServerStatus {
   reachable: boolean;
   engines: { phonon: boolean; edge: boolean };
-  /** The server can fetch web pages for URL import (`GET /api/fetch?url=`). */
+  /** The server can fetch web pages for pasted links (`GET /api/fetch?url=`). */
   fetch: boolean;
 }
 

@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { importFile } from './file';
-import { htmlToBlocks } from './html';
+import { htmlToBlocks, importHtmlFragment } from './html';
 
 const body = (html: string) => new DOMParser().parseFromString(html, 'text/html').body;
 
@@ -70,5 +70,56 @@ describe('htmlToBlocks', () => {
       'This is paragraph 1 of the article, with enough words in it to look like real content to Readability, which scores text density.',
     );
     expect(texts.join(' ')).not.toMatch(/Copyright|About/);
+  });
+});
+
+describe('importHtmlFragment', () => {
+  it('keeps headings and paragraphs of pasted rich text and titles it by the first heading', () => {
+    const html =
+      '<meta charset="utf-8"><!--StartFragment--><p>Intro line.</p><h2>The <b>Heading</b></h2>' +
+      '<p>First paragraph.</p><ul><li>An item</li></ul><!--EndFragment-->';
+    const draft = importHtmlFragment(html, 'Intro line.\nThe Heading\nFirst paragraph.\nAn item');
+    expect(draft).toEqual({
+      title: 'The Heading',
+      source: { kind: 'text' },
+      blocks: [
+        { kind: 'paragraph', text: 'Intro line.' },
+        { kind: 'heading', level: 2, text: 'The Heading' },
+        { kind: 'paragraph', text: 'First paragraph.' },
+        { kind: 'paragraph', text: 'An item' },
+      ],
+    });
+  });
+
+  it('does not run Readability: short fragments and their first block survive', () => {
+    const draft = importHtmlFragment('<div><span>Just one short sentence.</span></div>');
+    expect(draft.title).toBe('Just one short sentence.');
+    expect(draft.blocks).toEqual([{ kind: 'paragraph', text: 'Just one short sentence.' }]);
+  });
+
+  it('only parses: scripts, styles and handlers never run or reach the text', () => {
+    const run = vi.fn();
+    (globalThis as Record<string, unknown>).__pasted = run;
+    const draft = importHtmlFragment(
+      '<style>p{color:red}</style><script>__pasted()</script><img src="x" onerror="__pasted()"><p>Safe text.</p>',
+    );
+    expect(draft.blocks).toEqual([{ kind: 'paragraph', text: 'Safe text.' }]);
+    expect(run).not.toHaveBeenCalled();
+    expect(document.body.innerHTML).not.toContain('Safe text');
+  });
+
+  it('falls back to the plain text when the HTML has nothing readable or flattens its paragraphs', () => {
+    expect(importHtmlFragment('<img src="a.png">', 'Plain words.').blocks).toEqual([
+      { kind: 'paragraph', text: 'Plain words.' },
+    ]);
+    const flattened = importHtmlFragment('<span>One para.<br><br>Two para.</span>', 'One para.\n\nTwo para.');
+    expect(flattened.blocks).toHaveLength(2);
+    expect(flattened.title).toBe('One para.');
+  });
+
+  it('titles by the first line when there is no heading, and rejects empty fragments', () => {
+    const draft = importHtmlFragment('<p>Opening words here.</p><p>More.</p>', 'Opening words here.\n\nMore.');
+    expect(draft.title).toBe('Opening words here.');
+    expect(() => importHtmlFragment('<p> </p>')).toThrow('There is no readable text to import.');
   });
 });

@@ -140,6 +140,17 @@ class MockPlayer implements Player {
     clearInterval(this.timer);
     this.timer = undefined;
   }
+  async playFrom(index: number, charOffset = 0) {
+    this.halt();
+    if (this.state.status === 'ended') this.set({ status: 'paused' });
+    this.seek(index);
+    const i = this.state.sentenceIndex;
+    const text = this.sentences[i]?.text ?? '';
+    // The mock's word estimate is linear in characters, so its inverse is too.
+    const word = [...text.matchAll(/\S+/g)].find((m) => m.index + m[0].length > charOffset);
+    if (word && charOffset > 0) this.position = (word.index / text.length) * this.lengths[i];
+    await this.play();
+  }
   pause() {
     this.halt();
     this.set({ status: 'paused' });
@@ -248,6 +259,15 @@ export function createMockServices(mode: string): Services {
       async importFile(file) {
         const kind: SourceKind = /\.md$/i.test(file.name) ? 'markdown' : 'text';
         return importText(await file.text(), file.name.replace(/\.[^.]+$/, ''), kind);
+      },
+      importHtmlFragment(html, plainFallback) {
+        // Headings become Markdown-style lines for the mock importer; everything else is text.
+        const doc = new DOMParser().parseFromString(html, 'text/html');
+        const parts = [...doc.body.querySelectorAll('h1, h2, h3, h4, h5, h6, p, li')].map((el) =>
+          /^H\d$/.test(el.tagName) ? `${'#'.repeat(Number(el.tagName[1]))} ${el.textContent}` : (el.textContent ?? ''),
+        );
+        const heading = doc.body.querySelector('h1, h2, h3, h4, h5, h6')?.textContent ?? undefined;
+        return importText(parts.length ? parts.join('\n\n') : (plainFallback ?? doc.body.textContent ?? ''), heading);
       },
       async importUrl() {
         await delay(400);

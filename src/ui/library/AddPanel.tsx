@@ -1,13 +1,14 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent, type ReactNode } from 'react';
-import { AlertIcon, CloseIcon, LinkIcon, TextIcon, UploadIcon } from '../common/icons';
+import { AlertIcon, CloseIcon, PasteIcon, TextIcon, UploadIcon } from '../common/icons';
 import type { ImportJob } from './useImports';
 
-type Tab = 'text' | 'file' | 'url';
+type Tab = 'text' | 'file';
 const TABS: { id: Tab; label: string; icon: ReactNode }[] = [
-  { id: 'text', label: 'Paste text', icon: <TextIcon size={18} /> },
+  { id: 'text', label: 'Type or paste', icon: <TextIcon size={18} /> },
   { id: 'file', label: 'Upload file', icon: <UploadIcon size={18} /> },
-  { id: 'url', label: 'Web page', icon: <LinkIcon size={18} /> },
 ];
+
+const PASTE_KEY = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform) ? '⌘' : 'Ctrl';
 
 interface AddPanelProps {
   acceptedFileTypes: string;
@@ -16,13 +17,26 @@ interface AddPanelProps {
   /** Each resolves to whether the import succeeded, so the form can clear itself. */
   onText: (text: string, title: string) => Promise<boolean>;
   onFiles: (files: File[]) => void;
-  onUrl: (url: string) => Promise<boolean>;
+  /** The Paste button: reads the clipboard (inside this click) and adds what is on it. */
+  onPaste: () => void;
+  /** A short note about the last paste (empty clipboard, no clipboard access), or `null`. */
+  pasteNotice: string | null;
+  onDismissPasteNotice: () => void;
 }
 
-export function AddPanel({ acceptedFileTypes, jobs, onDismissJob, onText, onFiles, onUrl }: AddPanelProps) {
+export function AddPanel({
+  acceptedFileTypes,
+  jobs,
+  onDismissJob,
+  onText,
+  onFiles,
+  onPaste,
+  pasteNotice,
+  onDismissPasteNotice,
+}: AddPanelProps) {
   const [tab, setTab] = useState<Tab>('text');
   const baseId = useId();
-  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ text: null, file: null, url: null });
+  const tabRefs = useRef<Record<Tab, HTMLButtonElement | null>>({ text: null, file: null });
 
   const onTabKey = (e: KeyboardEvent) => {
     const step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
@@ -38,7 +52,28 @@ export function AddPanel({ acceptedFileTypes, jobs, onDismissJob, onText, onFile
       <h2 id={`${baseId}-heading`} className="add-heading">
         Add something to listen to
       </h2>
-      <div className="tabs" role="tablist" aria-label="Import from" onKeyDown={onTabKey}>
+      <div className="paste-row">
+        <button type="button" className="btn btn--primary paste-btn" onClick={onPaste}>
+          <PasteIcon size={20} />
+          Paste
+        </button>
+        <p className="paste-hint muted small">
+          <span className="hide-touch">
+            Copied something? Press <kbd>{PASTE_KEY}</kbd> <kbd>V</kbd> anywhere on this page. Text, a link to a web page or a
+            file opens straight away.
+          </span>
+          <span className="only-touch">Copied some text or a link to a web page? Paste it to start listening straight away.</span>
+        </p>
+      </div>
+      {pasteNotice && (
+        <p className="paste-notice" role="status">
+          <span>{pasteNotice}</span>
+          <button type="button" className="icon-btn icon-btn--small" aria-label="Dismiss" onClick={onDismissPasteNotice}>
+            <CloseIcon size={18} />
+          </button>
+        </p>
+      )}
+      <div className="tabs" role="tablist" aria-label="Or add it yourself" onKeyDown={onTabKey}>
         {TABS.map((t) => (
           <button
             key={t.id}
@@ -62,7 +97,6 @@ export function AddPanel({ acceptedFileTypes, jobs, onDismissJob, onText, onFile
       <div className="tab-panel" role="tabpanel" id={`${baseId}-panel`} aria-labelledby={`${baseId}-tab-${tab}`}>
         {tab === 'text' && <TextForm onSubmit={onText} />}
         {tab === 'file' && <FileDrop accept={acceptedFileTypes} onFiles={onFiles} />}
-        {tab === 'url' && <UrlForm onSubmit={onUrl} />}
       </div>
       <ImportJobs jobs={jobs} onDismiss={onDismissJob} />
     </section>
@@ -131,34 +165,6 @@ function FileDrop({ accept, onFiles }: { accept: string; onFiles: (files: File[]
         }}
       />
     </div>
-  );
-}
-
-function UrlForm({ onSubmit }: { onSubmit: AddPanelProps['onUrl'] }) {
-  const [url, setUrl] = useState('');
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    if (url.trim() && (await onSubmit(url.trim()))) setUrl('');
-  };
-  return (
-    <form className="add-form" onSubmit={submit}>
-      <div className="url-row">
-        <input
-          className="input"
-          type="url"
-          inputMode="url"
-          required
-          placeholder="https://example.com/article"
-          aria-label="Web page address"
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
-        />
-        <button type="submit" className="btn btn--primary" disabled={!url.trim()}>
-          Import
-        </button>
-      </div>
-      <p className="muted small">Some sites refuse to be read from another site. A server or proxy in Settings can help.</p>
-    </form>
   );
 }
 

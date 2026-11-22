@@ -15,8 +15,8 @@ The server is optional. Without it the app is a static site using in-browser Pho
 
 ## Features
 
-- Import pasted text, PDF, EPUB, DOCX, Markdown, HTML and web pages (by URL).
-- Sentence and word highlighting, click a sentence to jump, auto-scroll.
+- Paste text, rich text or a link to a web page (Ctrl/⌘ V anywhere on the library, or the Paste button), or import PDF, EPUB, DOCX, Markdown and HTML files.
+- Sentence and word highlighting, tap or click any word to start listening from there, auto-scroll.
 - Speed 0.5×–3× with pitch preserved, voice picker, keyboard shortcuts, lock-screen controls.
 - Library stored in the browser (IndexedDB) with resume position.
 - Export a document as a WAV file.
@@ -28,7 +28,7 @@ The server is optional. Without it the app is a static site using in-browser Pho
 npm install
 npm run dev                 # client only, http://localhost:5173
 
-# with the server (Edge TTS, server-side Phonon, web page import)
+# with the server (Edge TTS, server-side Phonon, fetching pages for pasted links)
 (cd server && npm install)
 npm run server              # API on http://localhost:8787 (the dev client proxies /api to it)
 

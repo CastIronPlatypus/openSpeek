@@ -116,6 +116,11 @@ export class ReadAloudPlayer implements Player {
   /** Sentence whose audio the element holds, or null. */
   private loaded: number | null = null;
   private words: WordTracker | null = null;
+  /**
+   * Where `playFrom` asked the next start of a sentence to begin, as a character offset.
+   * Used once, when that sentence's audio starts; dropped by any other move.
+   */
+  private startOffset: { index: number; charOffset: number } | null = null;
   private url: string | null = null;
   private unlocked = false;
   /** Bumped on every play/pause/load of the element, so a late `play()` rejection is ignored. */
@@ -178,6 +183,7 @@ export class ReadAloudPlayer implements Player {
   setDocument(sentences: Sentence[], startIndex = 0): void {
     this.invalidate();
     this.sentences = sentences;
+    this.startOffset = null;
     this.unload();
     const empty = sentences.length === 0;
     const sentenceIndex = empty ? -1 : clampIndex(startIndex, sentences.length);
@@ -225,6 +231,28 @@ export class ReadAloudPlayer implements Player {
       this.engineReady = true;
     }
     this.resume();
+  }
+
+  async playFrom(sentenceIndex: number, charOffset = 0): Promise<void> {
+    if (!this.sentences.length) return;
+    // Before any await, like `play`.
+    this.unlock();
+    const index = clampIndex(sentenceIndex, this.sentences.length);
+    this.moveTo(index);
+    this.reprioritise();
+    const length = this.sentences[index].text.length;
+    const offset = Number.isFinite(charOffset) ? Math.min(length, Math.max(0, Math.floor(charOffset))) : 0;
+    this.startOffset = offset > 0 ? { index, charOffset: offset } : null;
+    const { status } = this.state;
+    if (status === 'playing' || status === 'buffering') {
+      this.startCurrent();
+      return;
+    }
+    // Still loading the model: `play` picks up the new position once it is ready.
+    if (status === 'loading') return;
+    // `play` would restart an ended document from the top.
+    if (status === 'ended') this.set({ status: 'paused' });
+    return this.play();
   }
 
   pause(): void {
@@ -284,6 +312,7 @@ export class ReadAloudPlayer implements Player {
   stop(): void {
     this.invalidate();
     this.sentences = [];
+    this.startOffset = null;
     this.unload();
     this.releaseUrl();
     this.set({ status: 'idle', sentenceIndex: -1, word: null, error: null }, true);
@@ -345,6 +374,12 @@ export class ReadAloudPlayer implements Player {
     this.audio.preservesPitch = true;
     this.loaded = index;
     this.words = result.words ? timedWords(result.words) : estimatedWords(sentence.text);
+    const from = this.startOffset;
+    this.startOffset = null;
+    if (from?.index === index) {
+      const duration = this.durations.get(index) ?? result.pcm.length / this.engine.sampleRate;
+      this.audio.currentTime = this.words.startOf(from.charOffset, duration);
+    }
     this.playAudio();
   }
 
@@ -394,6 +429,7 @@ export class ReadAloudPlayer implements Player {
   }
 
   private moveTo(index: number): void {
+    this.startOffset = null;
     this.unload();
     this.failed.delete(index);
     this.set({ sentenceIndex: index, word: null }, true);

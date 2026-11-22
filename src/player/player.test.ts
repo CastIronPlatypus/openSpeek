@@ -373,6 +373,144 @@ describe('ReadAloudPlayer', () => {
     expect(player.getState().word).toEqual({ start: 7, end: 12 });
   });
 
+  describe('playFrom', () => {
+    // Weights: "a" 1+3, "bbbbbbb" 7+3, "cc" 2+3 → total 19; "cc" starts at 14/19 of the audio.
+    it('starts a paused document at the tapped word once the audio is ready', async () => {
+      const engine = new FakeEngine('phonon', false);
+      const { player, audio } = setup({ engine });
+      player.setDocument(sentences('One.', 'Two.', 'a bbbbbbb cc'));
+      const playing = player.playFrom(2, 11);
+      expect(audio.playCalls).toBe(1); // unlocked inside the gesture
+      expect(player.getState()).toMatchObject({ status: 'loading', sentenceIndex: 2 });
+      engine.finishLoad();
+      await playing;
+      expect(player.getState().status).toBe('buffering');
+      expect(engine.live()).toEqual(['a bbbbbbb cc']);
+
+      engine.respond('a bbbbbbb cc', 1.9);
+      await flush();
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 2, word: { start: 10, end: 12 } });
+      expect(audio.currentTime).toBeCloseTo(1.4);
+      expect(player.getState().elapsed).toBeCloseTo(player.getState().duration - 0.5);
+    });
+
+    it('switches immediately from another sentence that is playing', async () => {
+      const { player, engine, audio } = setup();
+      player.setDocument(sentences('One.', 'a bbbbbbb cc'));
+      await player.play();
+      engine.respond('One.', 1);
+      await flush();
+      engine.respond('a bbbbbbb cc', 1.9);
+      await flush();
+      audio.currentTime = 0.5;
+
+      await player.playFrom(1, 3);
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 1, word: { start: 2, end: 9 } });
+      expect(audio.currentTime).toBeCloseTo(0.4);
+      expect(player.getState().elapsed).toBeCloseTo(1.4);
+      expect(audio.paused).toBe(false);
+    });
+
+    it('applies the offset only once: not when the sentence is replayed', async () => {
+      const { player, engine, audio } = setup();
+      player.setDocument(sentences('a bbbbbbb cc', 'Two.'));
+      await player.playFrom(0, 10);
+      engine.respond('a bbbbbbb cc', 1.9);
+      await flush();
+      expect(audio.currentTime).toBeCloseTo(1.4);
+      engine.respond('Two.', 1);
+      await flush();
+      player.next();
+      player.prev();
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 0, word: { start: 0, end: 1 } });
+      expect(audio.currentTime).toBe(0);
+    });
+
+    it('drops the offset when the user seeks elsewhere while buffering', async () => {
+      const { player, engine, audio } = setup();
+      player.setDocument(sentences('One.', 'a bbbbbbb cc', 'Three.'));
+      await player.playFrom(1, 10);
+      expect(player.getState()).toMatchObject({ status: 'buffering', sentenceIndex: 1 });
+      player.seek(2);
+      await flush();
+      // The superseded sentence's audio is ignored, and the offset does not leak into the new one.
+      engine.respond('a bbbbbbb cc', 1.9, undefined, true);
+      engine.respond('Three.', 2);
+      await flush();
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 2 });
+      expect(audio.currentTime).toBe(0);
+
+      // Back to the tapped sentence by seeking: it starts from the top.
+      player.seek(1);
+      await flush();
+      engine.respond('a bbbbbbb cc', 1.9);
+      await flush();
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 1, word: { start: 0, end: 1 } });
+      expect(audio.currentTime).toBe(0);
+    });
+
+    it('keeps the offset through a pause while buffering', async () => {
+      const { player, engine, audio } = setup();
+      player.setDocument(sentences('a bbbbbbb cc'));
+      await player.playFrom(0, 2);
+      player.pause();
+      await player.play();
+      engine.respond('a bbbbbbb cc', 1.9);
+      await flush();
+      expect(audio.currentTime).toBeCloseTo(0.4);
+      expect(player.getState().word).toEqual({ start: 2, end: 9 });
+    });
+
+    it('uses real word timings when the engine reports them', async () => {
+      const { player, edge, audio } = setup();
+      player.setDocument(sentences('Hi big world'));
+      player.setEngine('edge');
+      await player.playFrom(0, 4);
+      await flush();
+      edge.respond('Hi big world', 2, [
+        { start: 0.2, end: 0.4, charStart: 0, charEnd: 2 },
+        { start: 0.5, end: 0.7, charStart: 3, charEnd: 6 },
+        { start: 1.2, end: 1.6, charStart: 7, charEnd: 12 },
+      ]);
+      await flush();
+      expect(audio.currentTime).toBe(0.5);
+      expect(player.getState()).toMatchObject({ status: 'playing', word: { start: 3, end: 6 } });
+      expect(player.getState().elapsed).toBeCloseTo(0.5);
+    });
+
+    it('picks the following word for an offset between words, and clamps out-of-range input', async () => {
+      const { player, engine, audio } = setup();
+      player.setDocument(sentences('One.', 'a bbbbbbb cc'));
+      await player.playFrom(1, 9); // the space before "cc"
+      engine.respond('a bbbbbbb cc', 1.9);
+      await flush();
+      expect(player.getState().word).toEqual({ start: 10, end: 12 });
+
+      await player.playFrom(7, 500); // past the last sentence and its end
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 1, word: { start: 10, end: 12 } });
+      expect(audio.currentTime).toBeCloseTo(1.4);
+
+      await player.playFrom(-3, -1);
+      expect(player.getState()).toMatchObject({ sentenceIndex: 0, word: null });
+    });
+
+    it('restarts an ended document from the tapped sentence, not the top', async () => {
+      const { player, engine, audio } = setup();
+      player.setDocument(sentences('One.', 'Two.'));
+      await player.play();
+      engine.respond('One.', 1);
+      await flush();
+      engine.respond('Two.', 1);
+      await flush();
+      audio.finish(1);
+      audio.finish(1);
+      expect(player.getState().status).toBe('ended');
+      await player.playFrom(1);
+      expect(player.getState()).toMatchObject({ status: 'playing', sentenceIndex: 1 });
+      expect(audio.currentTime).toBe(0);
+    });
+  });
+
   it('keeps getState stable, clamps the rate and applies it to the element', () => {
     const { player, audio } = setup();
     const a = player.getState();

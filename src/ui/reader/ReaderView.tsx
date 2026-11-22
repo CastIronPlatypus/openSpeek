@@ -78,7 +78,7 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
   const hub = useMemo(() => createHighlightHub(player), [player]);
   const audioExport = useAudioExport(sentences, doc.title);
   const { offscreen, jumpToCurrent } = useAutoFollow(settings.autoScroll, barRef);
-  const seek = useCallback((index: number) => player.seek(index), [player]);
+  const playFrom = useCallback((index: number, charOffset: number) => void player.playFrom(index, charOffset), [player]);
 
   useProgressSaver(doc.id);
   usePlayerBarHeight(barRef);
@@ -97,7 +97,7 @@ function Reader({ doc, sentences }: { doc: StoredDocument; sentences: Sentence[]
         {sentences.length === 0 ? (
           <p className="muted">This document has no readable text.</p>
         ) : (
-          <ReaderBody blocks={doc.blocks} sentences={sentences} hub={hub} onSeek={seek} />
+          <ReaderBody blocks={doc.blocks} sentences={sentences} hub={hub} onPlayFrom={playFrom} />
         )}
       </main>
       {offscreen && (

@@ -1,6 +1,6 @@
 import { Readability } from '@mozilla/readability';
-import type { Block } from '../types';
-import { makeBlock } from './text';
+import type { Block, DocumentDraft } from '../types';
+import { assertReadable, importText, makeBlock, truncateTitle } from './text';
 
 const SKIP = new Set([
   'script', 'style', 'nav', 'aside', 'footer', 'form', 'noscript', 'template', 'head', 'svg', 'math',
@@ -87,4 +87,38 @@ export function extractArticle(doc: Document): Article {
   const headline = makeBlock('heading', title, 1);
   if (headline && blocks.length && blocks[0].text !== headline.text) blocks = [headline, ...blocks];
   return { title, blocks };
+}
+
+/**
+ * Import a fragment of HTML, such as rich text from the clipboard, keeping its headings and
+ * paragraphs. Unlike a page, a fragment is all content, so it is converted as it is, without
+ * Readability. It is only parsed (scripts never run, nothing reaches the live page).
+ * `plainFallback` is the same content as plain text: used when the HTML yields nothing readable
+ * or flattens paragraphs the plain text keeps apart (e.g. lines separated only by `<br>`).
+ * The title is the first heading, else the first line.
+ */
+export function importHtmlFragment(html: string, plainFallback?: string): DocumentDraft {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const blocks = htmlToBlocks(doc.body);
+  const heading = blocks.find((b) => b.kind === 'heading');
+  if (plainFallback?.trim() && !heading) {
+    const plain = tryImportText(plainFallback);
+    if (plain && plain.blocks.length > blocks.length) return plain;
+  }
+  if (!blocks.length && plainFallback?.trim()) return importText(plainFallback);
+  assertReadable(blocks, 'There is no readable text to import.');
+  const firstLine = plainFallback?.split(/\r?\n/).find((l) => l.trim()) ?? blocks[0].text;
+  return {
+    title: truncateTitle(heading?.text ?? firstLine) || 'Untitled',
+    source: { kind: 'text' },
+    blocks,
+  };
+}
+
+function tryImportText(text: string): DocumentDraft | null {
+  try {
+    return importText(text);
+  } catch {
+    return null;
+  }
 }

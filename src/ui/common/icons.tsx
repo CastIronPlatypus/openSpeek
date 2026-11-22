@@ -121,10 +121,11 @@ export const TextIcon = (p: IconProps) => (
     <path d="M5 6h14M5 10.5h14M5 15h9M5 19.5h6" />
   </Svg>
 );
-export const LinkIcon = (p: IconProps) => (
+export const PasteIcon = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M10 14a4.5 4.5 0 0 0 6.4 0l3-3a4.5 4.5 0 0 0-6.4-6.4l-1.2 1.2" />
-    <path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3 3a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2" />
+    <path d="M9 4.5H7a2 2 0 0 0-2 2V19a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V6.5a2 2 0 0 0-2-2h-2" />
+    <rect x="9" y="3" width="6" height="3" rx="1" />
+    <path d="M9 11h6M9 15h4" />
   </Svg>
 );
 export const CloseIcon = (p: IconProps) => (
